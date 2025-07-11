@@ -1,50 +1,175 @@
-# Welcome to your Expo app 👋
+# CarCheck - Araç Hasar Tespiti Uygulaması
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+CarCheck, araç kiralarken araç hasarlarını yapay zeka ile tespit eden modern bir mobil uygulamadır. Kullanıcılar araçların farklı açılardan fotoğraflarını çekerek hasar analizi yapabilirler.
 
-## Get started
+## 🚀 Özellikler
 
-1. Install dependencies
+- **Kullanıcı Kimlik Doğrulama**: Firebase Authentication ile güvenli giriş
+- **Çoklu Fotoğraf Çekimi**: Ön, arka, sol, sağ ve üst açılardan fotoğraf
+- **Yapay Zeka Analizi**: Hasar tespiti ve sınıflandırması
+- **Detaylı Raporlama**: Hasar türü, şiddeti ve konumu
+- **Modern UI/UX**: Gradient tasarım ve kullanıcı dostu arayüz
+- **Firebase Entegrasyonu**: Firestore ve Storage desteği
+
+## 📱 Teknolojiler
+
+- **React Native** - Mobil uygulama geliştirme
+- **Expo** - Geliştirme platformu
+- **Firebase** - Backend servisleri
+  - Authentication
+  - Firestore Database
+  - Storage
+- **TypeScript** - Tip güvenliği
+- **Expo Camera** - Kamera entegrasyonu
+- **Linear Gradient** - Modern tasarım
+
+## 🛠️ Kurulum
+
+### Gereksinimler
+
+- Node.js (v16 veya üzeri)
+- npm veya yarn
+- Expo CLI
+- iOS Simulator veya Android Emulator
+
+### Adımlar
+
+1. **Projeyi klonlayın**
+
+   ```bash
+   git clone <repository-url>
+   cd carchecker
+   ```
+
+2. **Bağımlılıkları yükleyin**
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. **Firebase Konfigürasyonu**
 
+   - Firebase Console'da yeni bir proje oluşturun
+   - Authentication, Firestore ve Storage'ı etkinleştirin
+   - `config/firebase.ts` dosyasındaki konfigürasyonu güncelleyin
+
+4. **Uygulamayı başlatın**
    ```bash
-   npx expo start
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+## 📁 Proje Yapısı
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+carchecker/
+├── app/                    # Expo Router sayfaları
+│   ├── (tabs)/            # Tab navigasyonu
+│   ├── auth/              # Kimlik doğrulama sayfaları
+│   ├── inspection/        # İnceleme sayfaları
+│   └── _layout.tsx        # Ana layout
+├── components/            # Yeniden kullanılabilir bileşenler
+│   └── ui/               # UI bileşenleri
+├── config/               # Konfigürasyon dosyaları
+├── services/             # Firebase servisleri
+├── types/                # TypeScript tip tanımlamaları
+└── assets/               # Statik dosyalar
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🔧 Firebase Kurulumu
 
-## Learn more
+1. **Firebase Console'da proje oluşturun**
+2. **Authentication'ı etkinleştirin**
+   - Email/Password provider'ı açın
+3. **Firestore Database'i oluşturun**
+   - Test modunda başlatın
+4. **Storage'ı etkinleştirin**
+   - Kuralları güncelleyin
+5. **Web uygulaması ekleyin**
+   - Konfigürasyon bilgilerini kopyalayın
 
-To learn more about developing your project with Expo, look at the following resources:
+## 📊 Veri Modeli
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Kullanıcı (User)
 
-## Join the community
+```typescript
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: Date;
+}
+```
 
-Join our community of developers creating universal apps.
+### Araç İncelemesi (CarInspection)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```typescript
+interface CarInspection {
+  id: string;
+  userId: string;
+  carPlate?: string;
+  images: {
+    front: string;
+    back: string;
+    left: string;
+    right: string;
+    top: string;
+  };
+  damages: Damage[];
+  status: "pending" | "processing" | "completed" | "failed";
+  createdAt: Date;
+  completedAt?: Date;
+}
+```
+
+### Hasar (Damage)
+
+```typescript
+interface Damage {
+  id: string;
+  type: "scratch" | "dent" | "crack" | "chip" | "other";
+  severity: "minor" | "moderate" | "severe";
+  location: string;
+  description: string;
+  confidence: number;
+  coordinates?: { x: number; y: number };
+}
+```
+
+## 🎨 UI Bileşenleri
+
+- **Button**: Gradient butonlar
+- **Card**: Modern kart tasarımı
+- **Input**: Form giriş alanları
+- **LinearGradient**: Arka plan efektleri
+
+## 🔐 Güvenlik
+
+- Firebase Authentication ile güvenli kullanıcı yönetimi
+- Firestore güvenlik kuralları
+- Storage erişim kontrolü
+
+## 🚀 Gelecek Özellikler
+
+- [ ] Gerçek yapay zeka API entegrasyonu
+- [ ] Push bildirimleri
+- [ ] Offline mod desteği
+- [ ] Çoklu dil desteği
+- [ ] Sosyal medya paylaşımı
+- [ ] Hasar geçmişi
+- [ ] Tahmini onarım maliyeti
+
+## 📝 Lisans
+
+Bu proje MIT lisansı altında lisanslanmıştır.
+
+## 🤝 Katkıda Bulunma
+
+1. Fork yapın
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Commit yapın (`git commit -m 'Add amazing feature'`)
+4. Push yapın (`git push origin feature/amazing-feature`)
+5. Pull Request oluşturun
+
+## 📞 İletişim
+
+Proje hakkında sorularınız için issue açabilirsiniz.
