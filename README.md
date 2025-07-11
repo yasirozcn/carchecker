@@ -47,13 +47,31 @@ CarCheck, araç kiralarken araç hasarlarını yapay zeka ile tespit eden modern
    npm install
    ```
 
-3. **Firebase Konfigürasyonu**
+3. **Environment Variables Kurulumu**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   `.env` dosyasını Firebase Console'dan aldığınız bilgilerle güncelleyin:
+
+   ```env
+   FIREBASE_API_KEY=your_api_key_here
+   FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+   FIREBASE_PROJECT_ID=your_project_id
+   FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+   FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   FIREBASE_APP_ID=your_app_id
+   FIREBASE_MEASUREMENT_ID=your_measurement_id
+   ```
+
+4. **Firebase Konfigürasyonu**
 
    - Firebase Console'da yeni bir proje oluşturun
    - Authentication, Firestore ve Storage'ı etkinleştirin
-   - `config/firebase.ts` dosyasındaki konfigürasyonu güncelleyin
+   - Web uygulaması ekleyin ve konfigürasyon bilgilerini .env dosyasına ekleyin
 
-4. **Uygulamayı başlatın**
+5. **Uygulamayı başlatın**
    ```bash
    npm start
    ```
