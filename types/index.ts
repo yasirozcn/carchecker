@@ -34,10 +34,16 @@ export interface Damage {
     x: number;
     y: number;
   };
+  // AI analiz sonuçları için ek alanlar
+  vehicleDetected?: boolean;
+  vehicleType?: string;
+  vehicleConfidence?: number;
+  overallCondition?: "excellent" | "good" | "fair" | "poor" | "unknown";
 }
 
 export interface InspectionReport {
   inspectionId: string;
+  userId?: string; // Kullanıcı ID'si (opsiyonel, geriye uyumluluk için)
   totalDamages: number;
   severityBreakdown: {
     minor: number;

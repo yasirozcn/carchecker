@@ -13,11 +13,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Card } from "../../components/ui/Card";
-import { authService, inspectionService } from "../../services/firebase";
+import { inspectionService } from "../../services/firebase";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
+import { useAuth } from "../../components/AuthProvider";
 
 export default function NewInspectionScreen() {
+  const { user } = useAuth();
   const [carPlate, setCarPlate] = useState("");
   const [loading, setLoading] = useState(false);
   const colorScheme = useColorScheme();
@@ -31,19 +33,23 @@ export default function NewInspectionScreen() {
 
     setLoading(true);
     try {
-      const user = authService.onAuthStateChanged((user) => {
-        if (user) {
-          inspectionService
-            .createInspection(user.uid, carPlate.trim())
-            .then((inspectionId) => {
-              router.push(`/inspection/camera/${inspectionId}` as any);
-            })
-            .catch((error) => {
-              Alert.alert("Hata", "İnceleme oluşturulamadı");
-            });
-        }
-      });
-    } catch (error) {
+      if (!user) {
+        Alert.alert(
+          "Hata",
+          "Kullanıcı oturumu bulunamadı. Lütfen tekrar giriş yapın."
+        );
+        return;
+      }
+
+      inspectionService
+        .createInspection(user.uid, carPlate.trim())
+        .then((inspectionId) => {
+          router.push(`/inspection/camera/${inspectionId}` as any);
+        })
+        .catch(() => {
+          Alert.alert("Hata", "İnceleme oluşturulamadı");
+        });
+    } catch {
       Alert.alert("Hata", "İnceleme başlatılamadı");
     } finally {
       setLoading(false);

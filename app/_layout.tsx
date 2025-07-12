@@ -7,27 +7,18 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
-import { useEffect, useState } from "react";
-import { authService } from "../services/firebase";
+import { AuthProvider, useAuth } from "../components/AuthProvider";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 
-export default function RootLayout() {
+function RootLayoutContent() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { loading } = useAuth();
 
-  useEffect(() => {
-    const unsubscribe = authService.onAuthStateChanged((user) => {
-      setIsAuthenticated(!!user);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  if (!loaded || isAuthenticated === null) {
+  if (!loaded || loading) {
     return null;
   }
 
@@ -46,5 +37,13 @@ export default function RootLayout() {
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <RootLayoutContent />
+    </AuthProvider>
   );
 }

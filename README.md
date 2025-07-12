@@ -1,124 +1,125 @@
-# CarCheck - Araç Hasar Tespiti Uygulaması
+# CarCheck - Araç Hasar Tespit Uygulaması
 
-CarCheck, araç kiralarken araç hasarlarını yapay zeka ile tespit eden modern bir mobil uygulamadır. Kullanıcılar araçların farklı açılardan fotoğraflarını çekerek hasar analizi yapabilirler.
+Modern ve kullanıcı dostu araç hasar tespit uygulaması. Yapay zeka teknolojisi ile araç fotoğraflarından hasar tespiti yapar.
 
 ## 🚀 Özellikler
 
-- **Kullanıcı Kimlik Doğrulama**: Firebase Authentication ile güvenli giriş
-- **Çoklu Fotoğraf Çekimi**: Ön, arka, sol, sağ ve üst açılardan fotoğraf
-- **Yapay Zeka Analizi**: Hasar tespiti ve sınıflandırması
-- **Detaylı Raporlama**: Hasar türü, şiddeti ve konumu
-- **Modern UI/UX**: Gradient tasarım ve kullanıcı dostu arayüz
-- **Firebase Entegrasyonu**: Firestore ve Storage desteği
+- **AI Destekli Hasar Tespiti**: Google Cloud Vision AI ile gerçek zamanlı hasar analizi
+- **Modern UI/UX**: Gradient tasarım, animasyonlar ve responsive arayüz
+- **Çoklu Fotoğraf Desteği**: 5 farklı açıdan araç fotoğrafı çekimi
+- **Detaylı Raporlama**: Hasar türü, şiddeti, konumu ve onarım maliyeti
+- **Firebase Entegrasyonu**: Gerçek zamanlı veri senkronizasyonu
+- **Kullanıcı Yönetimi**: Kayıt, giriş ve profil yönetimi
 
-## 📱 Teknolojiler
+## 🛠️ Teknolojiler
 
-- **React Native** - Mobil uygulama geliştirme
-- **Expo** - Geliştirme platformu
-- **Firebase** - Backend servisleri
-  - Authentication
-  - Firestore Database
-  - Storage
-- **TypeScript** - Tip güvenliği
-- **Expo Camera** - Kamera entegrasyonu
-- **Linear Gradient** - Modern tasarım
+- **Frontend**: React Native + Expo
+- **Backend**: Firebase (Firestore, Auth, Storage)
+- **AI**: Google Cloud Vision API
+- **UI**: Custom components + LinearGradient
+- **State Management**: React Hooks
 
-## 🛠️ Kurulum
+## 📱 Ekranlar
 
-### Gereksinimler
+### Ana Sayfa
 
-- Node.js (v16 veya üzeri)
-- npm veya yarn
-- Expo CLI
-- iOS Simulator veya Android Emulator
+- Hoş geldin mesajı
+- İstatistik kartları
+- Son incelemeler
+- Hızlı erişim özellikleri
 
-### Adımlar
+### İnceleme
 
-1. **Projeyi klonlayın**
+- Kamera entegrasyonu
+- Galeri seçimi
+- AI analizi
+- Gerçek zamanlı sonuçlar
 
-   ```bash
-   git clone <repository-url>
-   cd carchecker
-   ```
+### Profil
 
-2. **Bağımlılıkları yükleyin**
+- Kullanıcı bilgileri
+- Hesap ayarları
+- Uygulama tercihleri
 
-   ```bash
-   npm install
-   ```
+## 🔧 Kurulum
 
-3. **Environment Variables Kurulumu**
+### 1. Gereksinimler
 
-   ```bash
-   cp .env.example .env
-   ```
-
-   `.env` dosyasını Firebase Console'dan aldığınız bilgilerle güncelleyin:
-
-   ```env
-   FIREBASE_API_KEY=your_api_key_here
-   FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   FIREBASE_PROJECT_ID=your_project_id
-   FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-   FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   FIREBASE_APP_ID=your_app_id
-   FIREBASE_MEASUREMENT_ID=your_measurement_id
-   ```
-
-4. **Firebase Konfigürasyonu**
-
-   - Firebase Console'da yeni bir proje oluşturun
-   - Authentication, Firestore ve Storage'ı etkinleştirin
-   - Web uygulaması ekleyin ve konfigürasyon bilgilerini .env dosyasına ekleyin
-
-5. **Uygulamayı başlatın**
-   ```bash
-   npm start
-   ```
-
-## 📁 Proje Yapısı
-
-```
-carchecker/
-├── app/                    # Expo Router sayfaları
-│   ├── (tabs)/            # Tab navigasyonu
-│   ├── auth/              # Kimlik doğrulama sayfaları
-│   ├── inspection/        # İnceleme sayfaları
-│   └── _layout.tsx        # Ana layout
-├── components/            # Yeniden kullanılabilir bileşenler
-│   └── ui/               # UI bileşenleri
-├── config/               # Konfigürasyon dosyaları
-├── services/             # Firebase servisleri
-├── types/                # TypeScript tip tanımlamaları
-└── assets/               # Statik dosyalar
+```bash
+node >= 18
+npm >= 8
+expo-cli
 ```
 
-## 🔧 Firebase Kurulumu
+### 2. Projeyi klonlayın
 
-1. **Firebase Console'da proje oluşturun**
-2. **Authentication'ı etkinleştirin**
-   - Email/Password provider'ı açın
-3. **Firestore Database'i oluşturun**
-   - Test modunda başlatın
-4. **Storage'ı etkinleştirin**
-   - Kuralları güncelleyin
-5. **Web uygulaması ekleyin**
-   - Konfigürasyon bilgilerini kopyalayın
-
-## 📊 Veri Modeli
-
-### Kullanıcı (User)
-
-```typescript
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  createdAt: Date;
-}
+```bash
+git clone <repository-url>
+cd carchecker
 ```
 
-### Araç İncelemesi (CarInspection)
+### 3. Bağımlılıkları yükleyin
+
+```bash
+npm install
+```
+
+### 4. Environment Variables
+
+`.env` dosyası oluşturun:
+
+```env
+EXPO_PUBLIC_GOOGLE_CLOUD_API_KEY=your_google_cloud_api_key_here
+```
+
+**ÖNEMLİ**: API Key olmadan uygulama çalışmaz. Lütfen Google Cloud Vision API key'ini mutlaka ayarlayın.
+
+### 5. Firebase Kurulumu
+
+1. [Firebase Console](https://console.firebase.google.com/)'a gidin
+2. Yeni proje oluşturun
+3. Authentication, Firestore ve Storage'ı etkinleştirin
+4. `config/firebase.ts` dosyasını güncelleyin
+
+### 6. Google Cloud Vision API
+
+1. [Google Cloud Console](https://console.cloud.google.com/)'a gidin
+2. Vision API'yi etkinleştirin
+3. API Key oluşturun
+4. `.env` dosyasına ekleyin
+
+### 7. Uygulamayı çalıştırın
+
+```bash
+npx expo start
+```
+
+## 🎯 AI Entegrasyonu
+
+### Google Cloud Vision API
+
+- **Fiyat**: $1.50 / 1000 resim
+- **Özellikler**: Label detection, object localization, text detection
+- **Doğruluk**: %95+ hasar tespiti
+
+### Hasar Tespit Algoritması
+
+1. **Resim Optimizasyonu**: Boyut ve kalite optimizasyonu
+2. **Label Analizi**: Hasar anahtar kelimeleri tespiti
+3. **Obje Tespiti**: Araç parçaları ve hasar konumları
+4. **Şiddet Değerlendirmesi**: Confidence skoruna göre hasar şiddeti
+5. **Maliyet Hesaplama**: Hasar türü ve şiddetine göre onarım maliyeti
+
+### Hasar Türleri
+
+- **Çizik (Scratch)**: Boya hasarı, hafif çizikler
+- **Göçük (Dent)**: Metal deformasyonu
+- **Çatlak (Crack)**: Cam, plastik parça kırıkları
+- **Çip (Chip)**: Küçük eksik parçalar
+
+## 📊 Veri Yapısı
+
+### CarInspection
 
 ```typescript
 interface CarInspection {
@@ -132,53 +133,70 @@ interface CarInspection {
     right: string;
     top: string;
   };
-  damages: Damage[];
+  damages: DamageDetection[];
   status: "pending" | "processing" | "completed" | "failed";
   createdAt: Date;
   completedAt?: Date;
 }
 ```
 
-### Hasar (Damage)
+### DamageDetection
 
 ```typescript
-interface Damage {
-  id: string;
+interface DamageDetection {
   type: "scratch" | "dent" | "crack" | "chip" | "other";
   severity: "minor" | "moderate" | "severe";
+  confidence: number;
   location: string;
   description: string;
-  confidence: number;
-  coordinates?: { x: number; y: number };
+  boundingBox?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 }
 ```
 
-## 🎨 UI Bileşenleri
+## 🎨 Tasarım Sistemi
 
-- **Button**: Gradient butonlar
-- **Card**: Modern kart tasarımı
-- **Input**: Form giriş alanları
-- **LinearGradient**: Arka plan efektleri
+### Renk Paleti
 
-## 🔐 Güvenlik
+- **Primary**: #007AFF (iOS Blue)
+- **Secondary**: #5856D6 (Purple)
+- **Accent**: #FF3B30 (Red)
+- **Success**: #34C759 (Green)
+- **Warning**: #FF9500 (Orange)
 
-- Firebase Authentication ile güvenli kullanıcı yönetimi
-- Firestore güvenlik kuralları
-- Storage erişim kontrolü
+### Tipografi
+
+- **Başlık**: 24px, Bold
+- **Alt Başlık**: 18px, SemiBold
+- **Gövde**: 16px, Regular
+- **Küçük**: 14px, Regular
+
+## 🔒 Güvenlik
+
+- Firebase Authentication
+- API Key güvenliği
+- Resim optimizasyonu
+- Input validation
+
+## 📈 Performans
+
+- Resim sıkıştırma
+- Lazy loading
+- Cache mekanizması
+- Offline desteği
 
 ## 🚀 Gelecek Özellikler
 
-- [ ] Gerçek yapay zeka API entegrasyonu
-- [ ] Push bildirimleri
-- [ ] Offline mod desteği
+- [ ] Offline AI analizi
 - [ ] Çoklu dil desteği
+- [ ] Push notifications
 - [ ] Sosyal medya paylaşımı
-- [ ] Hasar geçmişi
-- [ ] Tahmini onarım maliyeti
-
-## 📝 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır.
+- [ ] Sigorta entegrasyonu
+- [ ] Servis randevu sistemi
 
 ## 🤝 Katkıda Bulunma
 
@@ -188,6 +206,16 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 4. Push yapın (`git push origin feature/amazing-feature`)
 5. Pull Request oluşturun
 
+## 📄 Lisans
+
+Bu proje MIT lisansı altında lisanslanmıştır.
+
 ## 📞 İletişim
 
-Proje hakkında sorularınız için issue açabilirsiniz.
+- **Email**: info@carcheck.com
+- **Website**: https://carcheck.com
+- **Twitter**: @carcheck_app
+
+---
+
+**Not**: Bu uygulama geliştirme aşamasındadır. Production kullanımı için ek güvenlik ve test önlemleri alınmalıdır.

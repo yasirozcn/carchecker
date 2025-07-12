@@ -4,17 +4,21 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   RefreshControl,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
-import { authService, inspectionService } from "../../services/firebase";
+import {
+  authService,
+  inspectionService,
+  reportService,
+} from "../../services/firebase";
 import { CarInspection } from "../../types";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
@@ -45,7 +49,26 @@ export default function HomeScreen() {
       const userInspections = await inspectionService.getUserInspections(
         userId
       );
-      setInspections(userInspections);
+
+      // Her inceleme için rapor bilgisini de al
+      const inspectionsWithReports = await Promise.all(
+        userInspections.map(async (inspection) => {
+          try {
+            const report = await reportService.getReport(inspection.id);
+            return {
+              ...inspection,
+              hasReport: !!report,
+            };
+          } catch (error) {
+            return {
+              ...inspection,
+              hasReport: false,
+            };
+          }
+        })
+      );
+
+      setInspections(inspectionsWithReports);
     } catch (error) {
       console.error("Inspections yüklenirken hata:", error);
     } finally {
@@ -460,6 +483,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 16,
     elevation: 8,
+  },
+  testButton: {
+    marginTop: 8,
   },
   section: {
     paddingHorizontal: 24,

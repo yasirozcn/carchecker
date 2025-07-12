@@ -4,7 +4,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
-import { inspectionService, storageService } from "../../../services/firebase";
+import { inspectionService } from "../../../services/firebase";
+import { aiService } from "../../../services/aiService";
 
 export default function SimpleCameraScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -13,37 +14,25 @@ export default function SimpleCameraScreen() {
   const simulatePhotoCapture = async () => {
     setUploading(true);
     try {
-      // Mock resim URL'leri
-      const mockImages = {
-        front: "mock://storage/inspections/front.jpg",
-        back: "mock://storage/inspections/back.jpg",
-        left: "mock://storage/inspections/left.jpg",
-        right: "mock://storage/inspections/right.jpg",
-        top: "mock://storage/inspections/top.jpg",
-      };
+      // Test için basit bir base64 resim oluştur (1x1 pixel)
+      const testImageBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
-      await inspectionService.updateInspectionImages(id, mockImages);
-      await inspectionService.updateInspectionStatus(id, "processing");
+      // AI analizi yap
+      const result = await aiService.detectDamages(testImageBase64);
 
-      // Yapay zeka analizi simülasyonu
-      setTimeout(async () => {
-        try {
-          const damages = await (
-            await import("../../../services/aiService")
-          ).aiService.analyzeImages([]);
-          await inspectionService.updateInspectionStatus(
-            id,
-            "completed",
-            damages
-          );
-          router.push(`/inspection/result/${id}` as any);
-        } catch (error) {
-          await inspectionService.updateInspectionStatus(id, "failed");
-          Alert.alert("Hata", "Analiz sırasında bir hata oluştu");
-        }
-      }, 3000);
+      // Test sonuçlarını kaydet
+      await inspectionService.updateInspectionStatus(
+        id,
+        "completed",
+        result.damages
+      );
+
+      router.push(`/inspection/result/${id}` as any);
     } catch (error) {
-      Alert.alert("Hata", "İşlem başarısız");
+      console.error("Test analizi hatası:", error);
+      await inspectionService.updateInspectionStatus(id, "failed");
+      Alert.alert("Hata", "Test analizi sırasında bir hata oluştu");
     } finally {
       setUploading(false);
     }
@@ -53,18 +42,18 @@ export default function SimpleCameraScreen() {
     <LinearGradient colors={["#f8fafc", "#e2e8f0"]} style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
-          <Text style={styles.title}>Test Modu</Text>
+          <Text style={styles.title}>AI Test Modu</Text>
           <Text style={styles.subtitle}>
-            Kamera henüz hazır değil, test modunda devam ediyoruz
+            Google Cloud Vision API bağlantısını test ediyoruz
           </Text>
         </View>
 
         <View style={styles.content}>
           <Card>
-            <Text style={styles.cardTitle}>Test İncelemesi</Text>
+            <Text style={styles.cardTitle}>API Test</Text>
             <Text style={styles.cardText}>
-              Bu test modunda gerçek fotoğraf çekimi yerine mock veriler
-              kullanılıyor. Yapay zeka analizi simüle edilecek.
+              Bu test modunda Google Cloud Vision API bağlantısı test edilecek.
+              Gerçek AI analizi yapılacak ve sonuçlar gösterilecek.
             </Text>
           </Card>
 
@@ -76,7 +65,7 @@ export default function SimpleCameraScreen() {
                   <Text style={styles.stepNumberText}>1</Text>
                 </View>
                 <Text style={styles.stepText}>
-                  Mock fotoğraflar oluşturuluyor
+                  API bağlantısı test ediliyor
                 </Text>
               </View>
 
@@ -84,23 +73,21 @@ export default function SimpleCameraScreen() {
                 <View style={styles.stepNumber}>
                   <Text style={styles.stepNumberText}>2</Text>
                 </View>
-                <Text style={styles.stepText}>
-                  Yapay zeka analizi simüle ediliyor
-                </Text>
+                <Text style={styles.stepText}>Gerçek AI analizi yapılıyor</Text>
               </View>
 
               <View style={styles.step}>
                 <View style={styles.stepNumber}>
                   <Text style={styles.stepNumberText}>3</Text>
                 </View>
-                <Text style={styles.stepText}>Hasar raporu oluşturuluyor</Text>
+                <Text style={styles.stepText}>Sonuçlar gösteriliyor</Text>
               </View>
             </View>
           </Card>
 
           <View style={styles.actions}>
             <Button
-              title="Test Analizini Başlat"
+              title="API Testini Başlat"
               onPress={simulatePhotoCapture}
               loading={uploading}
               size="large"

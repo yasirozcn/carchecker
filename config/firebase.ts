@@ -1,8 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 import Constants from "expo-constants";
-// import { getStorage } from "firebase/storage"; // Storage henüz etkinleştirilmedi
 
 const firebaseConfig = {
   apiKey: Constants.expoConfig?.extra?.FIREBASE_API_KEY,
@@ -23,13 +23,15 @@ console.log("Firebase Config:", {
   apiKey: firebaseConfig.apiKey ? "***" : "undefined",
   authDomain: firebaseConfig.authDomain,
   projectId: firebaseConfig.projectId,
+  storageBucket: firebaseConfig.storageBucket,
   appId: firebaseConfig.appId,
 });
 
 const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
+
 export const db = getFirestore(app);
-// export const storage = getStorage(app); // Storage henüz etkinleştirilmedi
+export const storage = getStorage(app);
 
 export default app;

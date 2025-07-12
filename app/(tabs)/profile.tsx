@@ -42,7 +42,7 @@ export default function ProfileScreen() {
           try {
             await authService.logout();
             router.replace("/auth/login");
-          } catch (error) {
+          } catch {
             Alert.alert("Hata", "Çıkış yapılamadı");
           }
         },

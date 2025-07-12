@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { router } from "expo-router";
-import { authService } from "../services/firebase";
+import { useAuth } from "../components/AuthProvider";
 
 export default function IndexPage() {
+  const { user, loading } = useAuth();
+
   useEffect(() => {
-    // Kullanıcının giriş durumunu kontrol et
-    const unsubscribe = authService.onAuthStateChanged((user) => {
+    if (!loading) {
       if (user) {
         // Giriş yapmışsa ana sayfaya yönlendir
         router.replace("/(tabs)");
@@ -14,10 +15,8 @@ export default function IndexPage() {
         // Giriş yapmamışsa login sayfasına yönlendir
         router.replace("/auth/login");
       }
-    });
-
-    return unsubscribe;
-  }, []);
+    }
+  }, [user, loading]);
 
   return (
     <View style={styles.container}>

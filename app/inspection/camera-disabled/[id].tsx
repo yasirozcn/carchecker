@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Alert, ScrollView, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { Camera as ExpoCamera, CameraType } from "expo-camera";
+import { Camera, CameraType } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import { Button } from "../../../components/ui/Button";
-import { Card } from "../../../components/ui/Card";
 import { inspectionService, storageService } from "../../../services/firebase";
 
 type ImagePosition = "front" | "back" | "left" | "right" | "top";
@@ -18,7 +17,7 @@ interface ImageData {
 export default function CameraScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [camera, setCamera] = useState<ExpoCamera | null>(null);
+  const [camera, setCamera] = useState<Camera | null>(null);
   const [images, setImages] = useState<Record<ImagePosition, ImageData>>({
     front: { uri: "", uploaded: false },
     back: { uri: "", uploaded: false },
@@ -28,12 +27,11 @@ export default function CameraScreen() {
   });
   const [currentPosition, setCurrentPosition] =
     useState<ImagePosition>("front");
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const { status } = await ExpoCamera.requestCameraPermissionsAsync();
+      const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === "granted");
     })();
   }, []);
@@ -50,7 +48,7 @@ export default function CameraScreen() {
           ...prev,
           [currentPosition]: { uri: photo.uri, uploaded: false },
         }));
-      } catch (error) {
+      } catch {
         Alert.alert("Hata", "Fotoğraf çekilemedi");
       }
     }
@@ -105,25 +103,41 @@ export default function CameraScreen() {
       await inspectionService.updateInspectionImages(id, uploadedImages);
       await inspectionService.updateInspectionStatus(id, "processing");
 
-      // Yapay zeka analizi simülasyonu
-      setTimeout(async () => {
-        try {
-          const imageUrls = Object.values(uploadedImages);
-          const damages = await (
-            await import("../../../services/aiService")
-          ).aiService.analyzeImages(imageUrls);
+      // Yapay zeka analizi
+      try {
+        const imageUrls = Object.values(uploadedImages);
+        if (imageUrls.length > 0) {
+          // İlk fotoğrafı kullanarak AI analizi yap
+          const firstImageUrl = imageUrls[0];
+
+          // URL'den base64 verisini çıkar
+          let base64Data = firstImageUrl;
+          if (firstImageUrl.startsWith("data:image")) {
+            base64Data = firstImageUrl.split(",")[1];
+          } else if (firstImageUrl.startsWith("http")) {
+            // HTTP URL'den base64'e çevir
+            const response = await fetch(firstImageUrl);
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
+            base64Data = btoa(String.fromCharCode(...uint8Array));
+          }
+
+          const { aiService } = await import("../../../services/aiService");
+          const result = await aiService.detectDamages(base64Data);
+
           await inspectionService.updateInspectionStatus(
             id,
             "completed",
-            damages
+            result.damages
           );
-          router.push(`/inspection/result/${id}`);
-        } catch (error) {
-          await inspectionService.updateInspectionStatus(id, "failed");
-          Alert.alert("Hata", "Analiz sırasında bir hata oluştu");
         }
-      }, 3000);
-    } catch (error) {
+        router.push(`/inspection/result/${id}`);
+      } catch {
+        await inspectionService.updateInspectionStatus(id, "failed");
+        Alert.alert("Hata", "Analiz sırasında bir hata oluştu");
+      }
+    } catch {
       Alert.alert("Hata", "Resimler yüklenemedi");
     } finally {
       setUploading(false);
@@ -182,8 +196,11 @@ export default function CameraScreen() {
   }
 
   return (
-    <LinearGradient colors={["#f8fafc", "#e2e8f0"]} style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Araç Fotoğrafları</Text>
           <Text style={styles.subtitle}>
@@ -393,7 +410,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   positionButton: {
-    flex: 1,
     minWidth: 80,
   },
   completedPosition: {
@@ -412,13 +428,12 @@ const styles = StyleSheet.create({
   progressBar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     marginBottom: 8,
   },
   progressDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: "#E5E7EB",
   },
   completedDot: {
@@ -428,22 +443,18 @@ const styles = StyleSheet.create({
     width: 40,
     height: 2,
     backgroundColor: "#E5E7EB",
-    marginHorizontal: 8,
+    marginHorizontal: 4,
   },
   progressText: {
-    textAlign: "center",
     fontSize: 14,
     color: "#6B7280",
+    textAlign: "center",
   },
   actions: {
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 24,
   },
   analyzeButton: {
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    backgroundColor: "#10B981",
   },
 });

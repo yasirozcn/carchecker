@@ -13,7 +13,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
-import { authService, inspectionService } from "../../services/firebase";
+import {
+  authService,
+  inspectionService,
+  reportService,
+} from "../../services/firebase";
 import { CarInspection } from "../../types";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
@@ -42,7 +46,26 @@ export default function InspectionScreen() {
       const userInspections = await inspectionService.getUserInspections(
         userId
       );
-      setInspections(userInspections);
+
+      // Her inceleme için rapor bilgisini de al
+      const inspectionsWithReports = await Promise.all(
+        userInspections.map(async (inspection) => {
+          try {
+            const report = await reportService.getReport(inspection.id);
+            return {
+              ...inspection,
+              hasReport: !!report,
+            };
+          } catch (error) {
+            return {
+              ...inspection,
+              hasReport: false,
+            };
+          }
+        })
+      );
+
+      setInspections(inspectionsWithReports);
     } catch (error) {
       console.error("Inspections yüklenirken hata:", error);
     } finally {
@@ -77,7 +100,7 @@ export default function InspectionScreen() {
               if (user) {
                 await loadInspections(user.uid);
               }
-            } catch (error) {
+            } catch {
               Alert.alert("Hata", "İnceleme silinemedi");
             }
           },
@@ -417,6 +440,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
+  },
+  testButton: {
+    marginTop: 8,
   },
   section: {
     paddingHorizontal: 24,

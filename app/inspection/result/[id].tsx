@@ -12,7 +12,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
-import { inspectionService, reportService } from "../../../services/firebase";
+import { inspectionService } from "../../../services/firebase";
 import { CarInspection, Damage } from "../../../types";
 import { Colors } from "../../../constants/Colors";
 import { useColorScheme } from "../../../hooks/useColorScheme";
@@ -25,14 +25,16 @@ export default function ResultScreen() {
   const colors = Colors[colorScheme ?? "light"];
 
   useEffect(() => {
-    loadInspection();
+    if (id) {
+      loadInspection();
+    }
   }, [id]);
 
   const loadInspection = async () => {
     try {
       const inspectionData = await inspectionService.getInspection(id);
       setInspection(inspectionData);
-    } catch (error) {
+    } catch {
       Alert.alert("Hata", "İnceleme bilgileri yüklenemedi");
     } finally {
       setLoading(false);
@@ -163,12 +165,32 @@ export default function ResultScreen() {
     );
   }
 
+  // AI analiz sonuçlarını al
+  const aiResults = inspection.damages || [];
+
+  // Araç tespit bilgilerini al
+  const vehicleInfo =
+    aiResults.find((d) => d.vehicleDetected !== undefined) ||
+    aiResults[0] ||
+    {};
+  const vehicleDetected = vehicleInfo?.vehicleDetected !== false;
+  const vehicleType = vehicleInfo?.vehicleType || "Araç";
+  const vehicleConfidence = vehicleInfo?.vehicleConfidence || 0;
+
+  // Genel durum bilgisini al
+  const overallCondition = vehicleInfo?.overallCondition || "unknown";
+
+  // Gerçek hasarları filtrele (araç tespit bilgilerini hariç tut)
+  const actualDamages = aiResults.filter(
+    (d) => d.type && d.location && !d.vehicleDetected && !d.vehicleType
+  );
+
   const severeDamages =
-    inspection.damages?.filter((d) => d.severity === "severe").length || 0;
+    actualDamages.filter((d) => d.severity === "severe").length || 0;
   const moderateDamages =
-    inspection.damages?.filter((d) => d.severity === "moderate").length || 0;
+    actualDamages.filter((d) => d.severity === "moderate").length || 0;
   const minorDamages =
-    inspection.damages?.filter((d) => d.severity === "minor").length || 0;
+    actualDamages.filter((d) => d.severity === "minor").length || 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -284,9 +306,241 @@ export default function ResultScreen() {
             </View>
           </Card>
 
+          {/* Vehicle Detection Card */}
+          <Card style={{ ...styles.infoCard, backgroundColor: colors.card }}>
+            <View style={styles.cardHeader}>
+              <Ionicons
+                name={vehicleDetected ? "car" : "car-outline"}
+                size={24}
+                color={vehicleDetected ? colors.success : colors.error}
+              />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                Araç Tespiti
+              </Text>
+            </View>
+
+            <View style={styles.infoGrid}>
+              <View style={styles.infoItem}>
+                <Ionicons
+                  name={vehicleDetected ? "checkmark-circle" : "close-circle"}
+                  size={20}
+                  color={vehicleDetected ? colors.success : colors.error}
+                />
+                <View style={styles.infoContent}>
+                  <Text
+                    style={[styles.infoLabel, { color: colors.textSecondary }]}
+                  >
+                    Durum
+                  </Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>
+                    {vehicleDetected ? "Tespit Edildi" : "Tespit Edilemedi"}
+                  </Text>
+                </View>
+              </View>
+
+              {vehicleDetected && (
+                <>
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="car-sport"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.infoContent}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        Araç Türü
+                      </Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]}>
+                        {vehicleType}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="analytics"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.infoContent}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        Güven Oranı
+                      </Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]}>
+                        %{Math.round(vehicleConfidence * 100)}
+                      </Text>
+                      <View style={styles.confidenceBar}>
+                        <View
+                          style={[
+                            styles.confidenceFill,
+                            {
+                              width: `${vehicleConfidence * 100}%`,
+                              backgroundColor:
+                                vehicleConfidence > 0.8
+                                  ? colors.success
+                                  : vehicleConfidence > 0.6
+                                  ? colors.warning
+                                  : colors.error,
+                            },
+                          ]}
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="shield-checkmark"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.infoContent}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        Genel Durum
+                      </Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]}>
+                        {overallCondition === "excellent" && "Mükemmel"}
+                        {overallCondition === "good" && "İyi"}
+                        {overallCondition === "fair" && "Orta"}
+                        {overallCondition === "poor" && "Kötü"}
+                        {overallCondition === "unknown" && "Bilinmiyor"}
+                      </Text>
+                    </View>
+                  </View>
+                </>
+              )}
+            </View>
+          </Card>
+
+          {/* AI Analiz Detayları */}
+          {inspection.status === "completed" && aiResults.length > 0 && (
+            <Card style={{ ...styles.infoCard, backgroundColor: colors.card }}>
+              <View style={styles.cardHeader}>
+                <Ionicons
+                  name="analytics-outline"
+                  size={24}
+                  color={colors.accent}
+                />
+                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                  AI Analiz Detayları
+                </Text>
+              </View>
+
+              <View style={styles.infoGrid}>
+                <View style={styles.infoItem}>
+                  <Ionicons
+                    name="eye-outline"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                  <View style={styles.infoContent}>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Analiz Edilen Resim
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {aiResults.length} pozisyon
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.infoItem}>
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                  <View style={styles.infoContent}>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Başarılı Analiz
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {
+                        aiResults.filter(
+                          (r) => r.vehicleDetected !== undefined || r.type
+                        ).length
+                      }{" "}
+                      / {aiResults.length}
+                    </Text>
+                  </View>
+                </View>
+
+                {vehicleDetected && (
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="car-sport-outline"
+                      size={20}
+                      color={colors.textSecondary}
+                    />
+                    <View style={styles.infoContent}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        Tespit Edilen Araç
+                      </Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]}>
+                        {vehicleType} (%{Math.round(vehicleConfidence * 100)})
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {actualDamages.length > 0 && (
+                  <View style={styles.infoItem}>
+                    <Ionicons
+                      name="warning-outline"
+                      size={20}
+                      color={colors.warning}
+                    />
+                    <View style={styles.infoContent}>
+                      <Text
+                        style={[
+                          styles.infoLabel,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        Tespit Edilen Hasar
+                      </Text>
+                      <Text style={[styles.infoValue, { color: colors.text }]}>
+                        {actualDamages.length} adet
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </Card>
+          )}
+
           {inspection.status === "completed" &&
-          inspection.damages &&
-          inspection.damages.length > 0 ? (
+          actualDamages &&
+          actualDamages.length > 0 ? (
             <>
               {/* Summary Stats Card */}
               <Card
@@ -314,7 +568,7 @@ export default function ResultScreen() {
                       <Text
                         style={[styles.statNumber, { color: colors.primary }]}
                       >
-                        {inspection.damages.length}
+                        {actualDamages.length}
                       </Text>
                     </View>
                     <Text
@@ -411,7 +665,7 @@ export default function ResultScreen() {
                   </Text>
                 </View>
 
-                {inspection.damages.map((damage: Damage, index: number) => (
+                {actualDamages.map((damage: Damage, index: number) => (
                   <Card
                     key={damage.id || index}
                     style={{
@@ -831,6 +1085,13 @@ const styles = StyleSheet.create({
   confidenceFill: {
     height: "100%",
     borderRadius: 3,
+  },
+  confidenceBar: {
+    height: 4,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+    borderRadius: 2,
+    marginTop: 4,
+    overflow: "hidden",
   },
   successCard: {
     borderRadius: 16,

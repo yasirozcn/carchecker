@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -17,6 +18,8 @@ import { Input } from "../../components/ui/Input";
 import { authService } from "../../services/firebase";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
+
+const { height } = Dimensions.get("window");
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
@@ -59,12 +62,17 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
           <View style={styles.content}>
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.logoContainer}>
-                <Ionicons name="car-sport" size={64} color="#FFFFFF" />
+                <Ionicons
+                  name="car-sport"
+                  size={height * 0.08}
+                  color="#FFFFFF"
+                />
               </View>
               <Text style={styles.title}>CarCheck</Text>
               <Text style={styles.subtitle}>Araç Hasar Tespiti</Text>
@@ -147,27 +155,35 @@ export default function LoginScreen() {
               />
             </View>
 
-            {/* Features */}
+            {/* Features - Compact Version */}
             <View style={styles.features}>
-              <View style={styles.featureItem}>
-                <Ionicons name="camera-outline" size={24} color="#FFFFFF" />
-                <Text style={styles.featureText}>Hızlı Fotoğraf Çekimi</Text>
+              <View style={styles.featureRow}>
+                <View style={styles.featureItem}>
+                  <Ionicons name="camera-outline" size={20} color="#FFFFFF" />
+                  <Text style={styles.featureText}>Hızlı Fotoğraf</Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.featureText}>Güvenli Analiz</Text>
+                </View>
               </View>
-              <View style={styles.featureItem}>
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={24}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.featureText}>Güvenli Analiz</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Ionicons
-                  name="document-text-outline"
-                  size={24}
-                  color="#FFFFFF"
-                />
-                <Text style={styles.featureText}>Detaylı Rapor</Text>
+              <View style={styles.featureRow}>
+                <View style={styles.featureItem}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                  <Text style={styles.featureText}>Detaylı Rapor</Text>
+                </View>
+                <View style={styles.featureItem}>
+                  <Ionicons name="cloud-outline" size={20} color="#FFFFFF" />
+                  <Text style={styles.featureText}>Bulut Depolama</Text>
+                </View>
               </View>
             </View>
           </View>
@@ -187,57 +203,61 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: "center",
+    minHeight: height,
   },
   content: {
     padding: 24,
+    paddingVertical: 32,
   },
   header: {
     alignItems: "center",
-    marginBottom: 48,
+    marginBottom: 32,
   },
   logoContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: height * 0.12,
+    height: height * 0.12,
+    borderRadius: height * 0.06,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 48,
+    fontSize: Math.min(height * 0.06, 48),
     fontWeight: "bold",
     color: "#FFFFFF",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 20,
+    fontSize: Math.min(height * 0.025, 20),
     color: "rgba(255, 255, 255, 0.9)",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   description: {
-    fontSize: 16,
+    fontSize: Math.min(height * 0.02, 16),
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 20,
+    maxWidth: 300,
   },
   form: {
-    borderRadius: 24,
-    padding: 32,
+    borderRadius: 20,
+    padding: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowRadius: 16,
+    elevation: 12,
+    marginBottom: 24,
   },
   formTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 32,
+    marginBottom: 24,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
     position: "relative",
   },
   passwordToggle: {
@@ -248,12 +268,12 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: 8,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   dividerLine: {
     flex: 1,
@@ -268,17 +288,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   features: {
-    marginTop: 48,
-    gap: 16,
-  },
-  featureItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
     gap: 12,
   },
+  featureRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  featureItem: {
+    alignItems: "center",
+    gap: 6,
+  },
   featureText: {
-    fontSize: 16,
+    fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
     fontWeight: "500",
   },

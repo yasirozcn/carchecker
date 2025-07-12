@@ -1,59 +1,193 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Alert,
   Image,
-  Dimensions,
+  ScrollView,
+  TouchableOpacity,
 } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { inspectionService, storageService } from "../../../services/firebase";
-
-const { width: screenWidth } = Dimensions.get("window");
+import { aiService } from "../../../services/aiService";
+import { Colors } from "../../../constants/Colors";
+import { useColorScheme } from "../../../hooks/useColorScheme";
 
 const PHOTO_ANGLES = [
-  { key: "front", label: "Ön", icon: "car", color: "#FF6B6B" },
-  { key: "back", label: "Arka", icon: "car-sport", color: "#4ECDC4" },
-  { key: "left", label: "Sol", icon: "car-outline", color: "#45B7D1" },
-  { key: "right", label: "Sağ", icon: "car-sport-outline", color: "#96CEB4" },
-  { key: "top", label: "Üst", icon: "car-sport-sharp", color: "#FFEAA7" },
+  {
+    key: "front",
+    label: "Ön",
+    icon: "car",
+    color: "#FF6B6B",
+    description: "Ön tampon ve far",
+  },
+  {
+    key: "back",
+    label: "Arka",
+    icon: "car-sport",
+    color: "#4ECDC4",
+    description: "Arka tampon ve stop",
+  },
+  {
+    key: "left",
+    label: "Sol",
+    icon: "car-outline",
+    color: "#45B7D1",
+    description: "Sol yan panel",
+  },
+  {
+    key: "right",
+    label: "Sağ",
+    icon: "car-sport-outline",
+    color: "#96CEB4",
+    description: "Sağ yan panel",
+  },
+  {
+    key: "top",
+    label: "Üst",
+    icon: "car-sport-sharp",
+    color: "#FFEAA7",
+    description: "Tavan ve cam",
+  },
 ];
 
 export default function CameraScreen() {
   const { id } = useLocalSearchParams();
   const [currentAngle, setCurrentAngle] = useState(0);
   const [photos, setPhotos] = useState<{ [key: string]: string }>({});
-  const [isUploading, setIsUploading] = useState(false);
+
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
 
-  const takePicture = async () => {
-    const angleKey = PHOTO_ANGLES[currentAngle].key;
-    const angleData = PHOTO_ANGLES[currentAngle];
-
-    // Gerçek fotoğraf çekimi simüle et
-    const mockPhotoUrl = `https://via.placeholder.com/400x600/${angleData.color.replace(
-      "#",
-      ""
-    )}/FFFFFF?text=${angleData.label}+Fotoğraf`;
-
-    setPhotos((prev) => ({
-      ...prev,
-      [angleKey]: mockPhotoUrl,
-    }));
-
-    // Otomatik olarak bir sonraki açıya geç
-    if (currentAngle < PHOTO_ANGLES.length - 1) {
-      setTimeout(() => {
-        setCurrentAngle(currentAngle + 1);
-      }, 1000);
+  const testAPI = async () => {
+    try {
+      const isWorking = await aiService.testAPIKey();
+      if (isWorking) {
+        Alert.alert("Başarılı", "API bağlantısı çalışıyor!");
+      } else {
+        Alert.alert(
+          "Hata",
+          "API bağlantısı başarısız. API key'i kontrol edin."
+        );
+      }
+    } catch {
+      Alert.alert("Hata", "API test edilirken hata oluştu.");
     }
   };
 
-  const uploadPhotos = async () => {
+  const testStorage = async () => {
+    try {
+      const isWorking = await storageService.testStorageConnection();
+      if (isWorking) {
+        Alert.alert("Başarılı", "Firebase Storage bağlantısı çalışıyor!");
+      } else {
+        Alert.alert(
+          "Hata",
+          "Firebase Storage bağlantısı başarısız. Storage kurallarını kontrol edin."
+        );
+      }
+    } catch {
+      Alert.alert("Hata", "Storage test edilirken hata oluştu.");
+    }
+  };
+
+  const takePicture = async () => {
+    try {
+      const angleKey = PHOTO_ANGLES[currentAngle].key;
+      console.log("=== FOTOĞRAF ÇEKME BAŞLADI ===");
+      console.log("Açı:", angleKey, "Mevcut açı:", currentAngle);
+
+      // Gerçek kamera ile fotoğraf çek
+      console.log("Kamera açılıyor...");
+      const photoBase64 = await aiService.takePhoto();
+      console.log("Kamera kapandı, fotoğraf alındı mı:", !!photoBase64);
+
+      if (photoBase64) {
+        console.log("Fotoğraf başarıyla çekildi, state güncelleniyor...");
+
+        // State güncellemesini daha güvenli yap
+        // Memory kullanımını azaltmak için fotoğrafı optimize et
+        console.log("Fotoğraf optimize ediliyor...");
+        const optimizedPhoto = await aiService.optimizeImage(photoBase64);
+        console.log("Fotoğraf optimize edildi");
+
+        setPhotos((prev) => {
+          console.log("Önceki fotoğraflar:", Object.keys(prev));
+          const newPhotos = { ...prev, [angleKey]: optimizedPhoto };
+          console.log("Yeni fotoğraflar:", Object.keys(newPhotos));
+          console.log("=== FOTOĞRAF ÇEKME TAMAMLANDI ===");
+          return newPhotos;
+        });
+
+        // Otomatik geçişi kaldır, manuel kontrol et
+        console.log("Otomatik geçiş devre dışı bırakıldı");
+
+        // Sadece kullanıcıya bilgi ver
+        Alert.alert(
+          "Başarılı",
+          `${angleKey} açısından fotoğraf çekildi. Diğer açılardan da fotoğraf çekebilirsiniz.`
+        );
+      }
+    } catch (error) {
+      console.error("=== FOTOĞRAF ÇEKME HATASI ===", error);
+      Alert.alert(
+        "Hata",
+        "Fotoğraf çekilirken bir hata oluştu: " + (error as Error).message
+      );
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      const angleKey = PHOTO_ANGLES[currentAngle].key;
+      console.log("=== GALERİ SEÇİMİ BAŞLADI ===");
+      console.log("Açı:", angleKey);
+
+      // Galeriden fotoğraf seç
+      console.log("Galeri açılıyor...");
+      const photoBase64 = await aiService.pickImage();
+      console.log("Galeri kapandı, fotoğraf seçildi mi:", !!photoBase64);
+
+      if (photoBase64) {
+        console.log("Fotoğraf başarıyla seçildi, state güncelleniyor...");
+
+        // Memory kullanımını azaltmak için fotoğrafı optimize et
+        console.log("Fotoğraf optimize ediliyor...");
+        const optimizedPhoto = await aiService.optimizeImage(photoBase64);
+        console.log("Fotoğraf optimize edildi");
+
+        setPhotos((prev) => {
+          console.log("Önceki fotoğraflar:", Object.keys(prev));
+          const newPhotos = { ...prev, [angleKey]: optimizedPhoto };
+          console.log("Yeni fotoğraflar:", Object.keys(newPhotos));
+          console.log("=== GALERİ SEÇİMİ TAMAMLANDI ===");
+          return newPhotos;
+        });
+
+        Alert.alert(
+          "Başarılı",
+          `${angleKey} açısından fotoğraf seçildi. Diğer açılardan da fotoğraf seçebilirsiniz.`
+        );
+      }
+    } catch (error) {
+      console.error("=== GALERİ SEÇİMİ HATASI ===", error);
+      Alert.alert(
+        "Hata",
+        "Fotoğraf seçilirken bir hata oluştu: " + (error as Error).message
+      );
+    }
+  };
+
+  const analyzePhotos = async () => {
+    console.log("Analiz başlatılıyor...");
     const photoCount = Object.keys(photos).length;
+    console.log("Fotoğraf sayısı:", photoCount);
+
     if (photoCount === 0) {
       Alert.alert("Uyarı", "En az bir fotoğraf çekmelisiniz.");
       return;
@@ -67,15 +201,89 @@ export default function CameraScreen() {
       return;
     }
 
-    setIsUploading(true);
+    console.log("Analiz işlemi başlıyor...");
+    setIsProcessing(true);
     try {
-      // Fotoğrafları Firebase Storage'a yükle (mock)
-      const uploadedImages: { [key: string]: string } = {};
+      // Tüm fotoğrafları analiz et
+      const allDamages: any[] = [];
+      let vehicleDetectionWarnings: string[] = [];
+      let vehicleInfo: any = null;
 
-      for (const [angle, photoData] of Object.entries(photos)) {
+      for (const [angle, photoBase64] of Object.entries(photos)) {
+        try {
+          // AI ile hasar tespiti yap
+          const result = await aiService.detectDamages(photoBase64);
+
+          // Araç tespit uyarısını kontrol et
+          if (!result.vehicleDetected && result.warning) {
+            vehicleDetectionWarnings.push(`${angle} açısı: ${result.warning}`);
+          }
+
+          // İlk araç tespit bilgilerini al
+          if (!vehicleInfo && result.vehicleDetected) {
+            vehicleInfo = {
+              vehicleDetected: result.vehicleDetected,
+              vehicleType: result.vehicleType,
+              vehicleConfidence: result.vehicleConfidence,
+              overallCondition: result.overallCondition,
+            };
+          }
+
+          allDamages.push(
+            ...result.damages.map((damage) => ({
+              ...damage,
+              angle: angle,
+              photoBase64: photoBase64,
+            }))
+          );
+        } catch (error) {
+          console.error(`${angle} açısı analiz hatası:`, error);
+          throw error; // Hatayı yukarı fırlat
+        }
+      }
+
+      // Araç tespit uyarıları varsa göster
+      if (vehicleDetectionWarnings.length > 0) {
+        Alert.alert(
+          "Araç Tespit Uyarısı",
+          `Bazı fotoğraflarda araç tespit edilemedi:\n\n${vehicleDetectionWarnings.join(
+            "\n"
+          )}\n\nDevam etmek istiyor musunuz?`,
+          [
+            {
+              text: "İptal",
+              style: "cancel",
+              onPress: () => {
+                setIsProcessing(false);
+                return;
+              },
+            },
+            {
+              text: "Devam Et",
+              onPress: () => continueWithAnalysis(allDamages, vehicleInfo),
+            },
+          ]
+        );
+        return;
+      }
+
+      // Uyarı yoksa devam et
+      await continueWithAnalysis(allDamages, vehicleInfo);
+    } catch (error) {
+      console.error("Analiz hatası:", error);
+      Alert.alert("Hata", "Fotoğraflar analiz edilirken bir hata oluştu.");
+      setIsProcessing(false);
+    }
+  };
+
+  const continueWithAnalysis = async (allDamages: any[], vehicleInfo: any) => {
+    try {
+      // Fotoğrafları Firebase Storage'a yükle
+      const uploadedImages: { [key: string]: string } = {};
+      for (const [angle, photoBase64] of Object.entries(photos)) {
         const fileName = `inspection_${id}_${angle}_${Date.now()}.jpg`;
         const uploadedUrl = await storageService.uploadPhoto(
-          photoData,
+          photoBase64,
           fileName
         );
         uploadedImages[angle] = uploadedUrl;
@@ -95,21 +303,43 @@ export default function CameraScreen() {
         id as string,
         completeImages
       );
-      await inspectionService.updateInspectionStatus(
+
+      // AI analiz sonuçlarını damages array'ine ekle
+      const damagesWithVehicleInfo = [
+        // Araç tespit bilgilerini ilk eleman olarak ekle
+        {
+          id: "vehicle_detection",
+          type: "other" as any,
+          severity: "minor" as any,
+          location: "vehicle",
+          description: "Araç tespit bilgileri",
+          confidence: vehicleInfo?.vehicleConfidence || 0,
+          vehicleDetected: vehicleInfo?.vehicleDetected || false,
+          vehicleType: vehicleInfo?.vehicleType || "Araç",
+          vehicleConfidence: vehicleInfo?.vehicleConfidence || 0,
+          overallCondition: vehicleInfo?.overallCondition || "unknown",
+        },
+        // Gerçek hasarları ekle
+        ...allDamages.map((damage, index) => ({
+          ...damage,
+          id: `damage_${index}`,
+        })),
+      ];
+
+      // Hasar verilerini kaydet
+      await inspectionService.updateInspectionDamages(
         id as string,
-        "processing"
+        damagesWithVehicleInfo
       );
 
-      // AI analizi başlat
-      setIsProcessing(true);
-      await inspectionService.processInspection(id as string);
+      await inspectionService.updateInspectionStatus(id as string, "completed");
 
       // Sonuç sayfasına yönlendir
       router.push(`/inspection/result/${id}`);
     } catch (error) {
-      Alert.alert("Hata", "Fotoğraflar yüklenirken bir hata oluştu.");
+      console.error("Analiz hatası:", error);
+      Alert.alert("Hata", "Fotoğraflar analiz edilirken bir hata oluştu.");
     } finally {
-      setIsUploading(false);
       setIsProcessing(false);
     }
   };
@@ -130,13 +360,17 @@ export default function CameraScreen() {
   const photoCount = Object.keys(photos).length;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.primary, colors.secondary]}
+        style={styles.header}
+      >
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="close" size={24} color="white" />
+          <Ionicons name="arrow-back" size={24} color="white" />
         </TouchableOpacity>
 
         <View style={styles.headerInfo}>
@@ -149,10 +383,18 @@ export default function CameraScreen() {
         </View>
 
         <View style={styles.headerControls}>
+          <TouchableOpacity style={styles.headerButton} onPress={testAPI}>
+            <Ionicons name="wifi" size={24} color="white" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.headerButton} onPress={testStorage}>
+            <Ionicons name="cloud-upload" size={24} color="white" />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() =>
-              Alert.alert("Bilgi", "Flash özelliği test modunda devre dışı")
+              Alert.alert("Bilgi", "Flash özelliği yakında eklenecek")
             }
           >
             <Ionicons name="flash-off" size={24} color="white" />
@@ -161,32 +403,60 @@ export default function CameraScreen() {
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() =>
-              Alert.alert("Bilgi", "Kamera değiştirme test modunda devre dışı")
+              Alert.alert("Bilgi", "Kamera değiştirme yakında eklenecek")
             }
           >
             <Ionicons name="camera-reverse" size={24} color="white" />
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
 
+      {/* Camera Preview */}
       <View style={styles.cameraPreview}>
-        <View style={styles.cameraFrame}>
-          <Ionicons name="camera" size={80} color="rgba(255,255,255,0.3)" />
-          <Text style={styles.cameraText}>Test Modu</Text>
-          <Text style={styles.cameraSubtext}>
-            Gerçek kamera simüle ediliyor
-          </Text>
-        </View>
+        {selectedPhoto ? (
+          <View style={styles.photoPreview}>
+            <Image
+              source={{ uri: `data:image/jpeg;base64,${selectedPhoto}` }}
+              style={styles.previewImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.closePreview}
+              onPress={() => setSelectedPhoto(null)}
+            >
+              <Ionicons name="close" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.cameraFrame}>
+            <Ionicons name="camera" size={80} color={colors.textTertiary} />
+            <Text style={[styles.cameraText, { color: colors.text }]}>
+              {currentAngleData.label} Açısı
+            </Text>
+            <Text
+              style={[styles.cameraSubtext, { color: colors.textSecondary }]}
+            >
+              {currentAngleData.description}
+            </Text>
+          </View>
+        )}
       </View>
 
+      {/* Angle Indicator */}
       <View style={styles.angleIndicator}>
-        <Text style={styles.angleText}>
+        <Text style={[styles.angleText, { color: colors.text }]}>
           {currentAngleData.label} açısından fotoğraf çekin
         </Text>
       </View>
 
+      {/* Footer */}
       <View style={styles.footer}>
-        <View style={styles.photoPreview}>
+        {/* Photo Preview */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.photoPreviewRow}
+        >
           {PHOTO_ANGLES.map((angle, index) => (
             <TouchableOpacity
               key={angle.key}
@@ -197,21 +467,31 @@ export default function CameraScreen() {
               ]}
               onPress={() => goToAngle(index)}
             >
-              <Ionicons
-                name={angle.icon as any}
-                size={20}
-                color={
-                  photos[angle.key]
-                    ? "white"
-                    : currentAngle === index
-                    ? "#007AFF"
-                    : "white"
-                }
-              />
+              {photos[angle.key] ? (
+                <Image
+                  source={{
+                    uri: `data:image/jpeg;base64,${photos[angle.key]}`,
+                  }}
+                  style={styles.angleButtonImage}
+                />
+              ) : (
+                <Ionicons
+                  name={angle.icon as any}
+                  size={20}
+                  color={
+                    photos[angle.key]
+                      ? "white"
+                      : currentAngle === index
+                      ? colors.primary
+                      : colors.textTertiary
+                  }
+                />
+              )}
               <Text
                 style={[
                   styles.angleButtonText,
                   photos[angle.key] && styles.angleButtonTextCompleted,
+                  { color: photos[angle.key] ? "white" : colors.text },
                 ]}
               >
                 {angle.label}
@@ -221,32 +501,53 @@ export default function CameraScreen() {
                   <Ionicons name="checkmark" size={12} color="white" />
                 </View>
               )}
+              {photos[angle.key] && (
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removePhoto(angle.key)}
+                >
+                  <Ionicons name="close-circle" size={16} color="white" />
+                </TouchableOpacity>
+              )}
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
 
+        {/* Controls */}
         <View style={styles.controls}>
           <TouchableOpacity
             style={styles.captureButton}
             onPress={takePicture}
-            disabled={isUploading || isProcessing}
+            disabled={isProcessing}
           >
             <View style={styles.captureButtonInner} />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.galleryButton}
+            onPress={pickImage}
+            disabled={isProcessing}
+          >
+            <Ionicons name="images" size={24} color={colors.primary} />
+          </TouchableOpacity>
+
           {photoCount >= 3 && (
             <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={uploadPhotos}
-              disabled={isUploading || isProcessing}
+              style={[styles.analyzeButton, { backgroundColor: colors.accent }]}
+              onPress={analyzePhotos}
+              disabled={isProcessing}
             >
-              <Text style={styles.uploadButtonText}>
-                {isUploading
-                  ? "Yükleniyor..."
-                  : isProcessing
-                  ? "Analiz Ediliyor..."
-                  : "Analiz Et"}
+              <Text style={styles.analyzeButtonText}>
+                {isProcessing ? "Analiz Ediliyor..." : "Analiz Et"}
               </Text>
+              {isProcessing && (
+                <Ionicons
+                  name="sync"
+                  size={16}
+                  color="white"
+                  style={styles.spinning}
+                />
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -258,130 +559,152 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1a1a1a",
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "space-between",
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerInfo: {
     flex: 1,
     alignItems: "center",
   },
   headerTitle: {
-    color: "white",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "bold",
+    color: "white",
   },
   headerSubtitle: {
-    color: "white",
     fontSize: 14,
-    opacity: 0.8,
+    color: "rgba(255, 255, 255, 0.8)",
   },
   headerControls: {
     flexDirection: "row",
-    gap: 15,
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
+    gap: 10,
   },
   cameraPreview: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#2a2a2a",
+    padding: 20,
   },
   cameraFrame: {
     alignItems: "center",
-    padding: 40,
+    gap: 16,
   },
   cameraText: {
-    color: "white",
     fontSize: 24,
-    fontWeight: "600",
-    marginTop: 20,
+    fontWeight: "bold",
   },
   cameraSubtext: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 16,
-    marginTop: 10,
-  },
-  angleIndicator: {
-    position: "absolute",
-    top: "60%",
-    left: 20,
-    right: 20,
-    alignItems: "center",
-  },
-  angleText: {
-    color: "white",
     fontSize: 16,
     textAlign: "center",
-    backgroundColor: "rgba(0,0,0,0.7)",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0,0,0,0.9)",
-    padding: 20,
-    paddingBottom: 40,
   },
   photoPreview: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 20,
+    position: "relative",
   },
-  angleButton: {
-    alignItems: "center",
-    padding: 10,
+  previewImage: {
+    width: "100%",
+    height: "100%",
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.1)",
-    minWidth: 60,
   },
-  angleButtonActive: {
-    backgroundColor: "rgba(0,122,255,0.3)",
+  closePreview: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  angleButtonCompleted: {
-    backgroundColor: "#34C759",
+  angleIndicator: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  angleButtonText: {
-    color: "white",
-    fontSize: 12,
-    marginTop: 4,
+  angleText: {
+    fontSize: 16,
+    textAlign: "center",
     fontWeight: "500",
   },
-  angleButtonTextCompleted: {
+  footer: {
+    padding: 20,
+    gap: 20,
+  },
+  photoPreviewRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  angleButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  angleButtonActive: {
+    backgroundColor: "rgba(0, 122, 255, 0.2)",
+    borderWidth: 2,
+    borderColor: "#007AFF",
+  },
+  angleButtonCompleted: {
+    backgroundColor: "rgba(52, 199, 89, 0.2)",
+    borderWidth: 2,
+    borderColor: "#34C759",
+  },
+  angleButtonImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 10,
+  },
+  angleButtonText: {
+    fontSize: 12,
     fontWeight: "600",
+    marginTop: 4,
+  },
+  angleButtonTextCompleted: {
+    color: "white",
   },
   checkmark: {
     position: "absolute",
-    top: -5,
-    right: -5,
-    backgroundColor: "#34C759",
-    borderRadius: 8,
+    top: 4,
+    right: 4,
     width: 16,
     height: 16,
+    borderRadius: 8,
+    backgroundColor: "#34C759",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeButton: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 59, 48, 0.8)",
     justifyContent: "center",
     alignItems: "center",
   },
   controls: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     gap: 20,
   },
   captureButton: {
@@ -391,24 +714,39 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   captureButtonInner: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "white",
-    borderWidth: 3,
-    borderColor: "#007AFF",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "#007AFF",
   },
-  uploadButton: {
-    backgroundColor: "#34C759",
+  galleryButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  analyzeButton: {
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 25,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  uploadButtonText: {
+  analyzeButtonText: {
     color: "white",
     fontWeight: "600",
-    fontSize: 16,
+  },
+  spinning: {
+    transform: [{ rotate: "360deg" }],
   },
 });
