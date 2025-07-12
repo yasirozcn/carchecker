@@ -4,10 +4,9 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
   Alert,
   RefreshControl,
-  TouchableOpacity,
-  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -19,9 +18,7 @@ import { CarInspection } from "../../types";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
 
-const { width } = Dimensions.get("window");
-
-export default function HomeScreen() {
+export default function InspectionScreen() {
   const [inspections, setInspections] = useState<CarInspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -63,6 +60,30 @@ export default function HomeScreen() {
 
   const handleNewInspection = () => {
     router.push("/inspection/new");
+  };
+
+  const handleDeleteInspection = async (inspectionId: string) => {
+    Alert.alert(
+      "İncelemeyi Sil",
+      "Bu incelemeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+      [
+        { text: "İptal", style: "cancel" },
+        {
+          text: "Sil",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await inspectionService.deleteInspection(inspectionId);
+              if (user) {
+                await loadInspections(user.uid);
+              }
+            } catch (error) {
+              Alert.alert("Hata", "İnceleme silinemedi");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getStatusText = (status: string) => {
@@ -118,9 +139,9 @@ export default function HomeScreen() {
           { backgroundColor: colors.background },
         ]}
       >
-        <Ionicons name="car-sport-outline" size={64} color={colors.primary} />
+        <Ionicons name="camera-outline" size={64} color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          CarCheck Yükleniyor...
+          İncelemeler Yükleniyor...
         </Text>
       </View>
     );
@@ -128,8 +149,10 @@ export default function HomeScreen() {
 
   const completedInspections = inspections.filter(
     (i) => i.status === "completed"
-  ).length;
-  const totalInspections = inspections.length;
+  );
+  const pendingInspections = inspections.filter(
+    (i) => i.status === "pending" || i.status === "processing"
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -151,23 +174,27 @@ export default function HomeScreen() {
         >
           <View style={styles.headerContent}>
             <View style={styles.welcomeSection}>
-              <Text style={styles.welcomeText}>
-                Merhaba,{" "}
-                {user?.displayName || user?.email?.split("@")[0] || "Kullanıcı"}
-                !
-              </Text>
+              <Text style={styles.welcomeText}>Araç İncelemeleri</Text>
               <Text style={styles.welcomeSubtitle}>
-                Araç hasar tespiti için hazır mısınız?
+                Tüm inceleme geçmişinizi burada görebilirsiniz
               </Text>
             </View>
             <View style={styles.statsContainer}>
               <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{totalInspections}</Text>
-                <Text style={styles.statLabel}>Toplam İnceleme</Text>
+                <Text style={styles.statNumber}>{inspections.length}</Text>
+                <Text style={styles.statLabel}>Toplam</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statNumber}>{completedInspections}</Text>
+                <Text style={styles.statNumber}>
+                  {completedInspections.length}
+                </Text>
                 <Text style={styles.statLabel}>Tamamlanan</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>
+                  {pendingInspections.length}
+                </Text>
+                <Text style={styles.statLabel}>Bekleyen</Text>
               </View>
             </View>
           </View>
@@ -183,25 +210,16 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Recent Inspections */}
+        {/* All Inspections */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Son İncelemeler
-            </Text>
-            {inspections.length > 0 && (
-              <TouchableOpacity>
-                <Text style={[styles.seeAllText, { color: colors.primary }]}>
-                  Tümünü Gör
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Tüm İncelemeler
+          </Text>
 
           {inspections.length === 0 ? (
             <Card style={{ ...styles.emptyCard, backgroundColor: colors.card }}>
               <Ionicons
-                name="car-outline"
+                name="camera-outline"
                 size={48}
                 color={colors.textTertiary}
                 style={styles.emptyIcon}
@@ -214,7 +232,7 @@ export default function HomeScreen() {
               </Text>
             </Card>
           ) : (
-            inspections.slice(0, 3).map((inspection) => (
+            inspections.map((inspection) => (
               <Card
                 key={inspection.id}
                 style={{
@@ -277,6 +295,8 @@ export default function HomeScreen() {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </Text>
 
@@ -308,83 +328,20 @@ export default function HomeScreen() {
                     size="small"
                     style={styles.detailButton}
                   />
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteInspection(inspection.id)}
+                  >
+                    <Ionicons
+                      name="trash-outline"
+                      size={20}
+                      color={colors.error}
+                    />
+                  </TouchableOpacity>
                 </View>
               </Card>
             ))
           )}
-        </View>
-
-        {/* Features Section */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Özellikler
-          </Text>
-          <View style={styles.featuresGrid}>
-            <Card
-              style={{ ...styles.featureCard, backgroundColor: colors.card }}
-            >
-              <Ionicons
-                name="camera-outline"
-                size={32}
-                color={colors.primary}
-              />
-              <Text style={[styles.featureTitle, { color: colors.text }]}>
-                Hızlı Tespit
-              </Text>
-              <Text
-                style={[styles.featureText, { color: colors.textSecondary }]}
-              >
-                AI destekli hasar tespiti
-              </Text>
-            </Card>
-            <Card
-              style={{ ...styles.featureCard, backgroundColor: colors.card }}
-            >
-              <Ionicons
-                name="document-text-outline"
-                size={32}
-                color={colors.accent}
-              />
-              <Text style={[styles.featureTitle, { color: colors.text }]}>
-                Detaylı Rapor
-              </Text>
-              <Text
-                style={[styles.featureText, { color: colors.textSecondary }]}
-              >
-                Kapsamlı hasar raporu
-              </Text>
-            </Card>
-            <Card
-              style={{ ...styles.featureCard, backgroundColor: colors.card }}
-            >
-              <Ionicons
-                name="cloud-outline"
-                size={32}
-                color={colors.secondary}
-              />
-              <Text style={[styles.featureTitle, { color: colors.text }]}>
-                Bulut Depolama
-              </Text>
-              <Text
-                style={[styles.featureText, { color: colors.textSecondary }]}
-              >
-                Güvenli veri saklama
-              </Text>
-            </Card>
-            <Card
-              style={{ ...styles.featureCard, backgroundColor: colors.card }}
-            >
-              <Ionicons name="share-outline" size={32} color={colors.warning} />
-              <Text style={[styles.featureTitle, { color: colors.text }]}>
-                Kolay Paylaşım
-              </Text>
-              <Text
-                style={[styles.featureText, { color: colors.textSecondary }]}
-              >
-                Raporları paylaşın
-              </Text>
-            </Card>
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -430,22 +387,22 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: "row",
-    gap: 16,
+    gap: 12,
   },
   statCard: {
     flex: 1,
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
     alignItems: "center",
   },
   statNumber: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#FFFFFF",
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: "rgba(255, 255, 255, 0.8)",
     marginTop: 4,
   },
@@ -458,26 +415,17 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 16,
+    shadowRadius: 12,
     elevation: 8,
   },
   section: {
     paddingHorizontal: 24,
     marginBottom: 32,
   },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: "600",
+    marginBottom: 16,
   },
   emptyCard: {
     alignItems: "center",
@@ -547,31 +495,14 @@ const styles = StyleSheet.create({
   },
   cardActions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   detailButton: {
     minWidth: 120,
   },
-  featuresGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  featureCard: {
-    width: (width - 60) / 2,
-    padding: 20,
-    borderRadius: 16,
-    alignItems: "center",
-    gap: 12,
-  },
-  featureTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  featureText: {
-    fontSize: 12,
-    textAlign: "center",
-    lineHeight: 16,
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
   },
 });

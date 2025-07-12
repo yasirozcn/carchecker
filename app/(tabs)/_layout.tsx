@@ -10,38 +10,72 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textTertiary,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: "absolute",
-          },
-          default: {},
-        }),
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.cardBorder,
+          borderTopWidth: 1,
+          height: Platform.OS === "ios" ? 88 : 60,
+          paddingBottom: Platform.OS === "ios" ? 20 : 8,
+          paddingTop: 8,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+          marginTop: 4,
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Ana Sayfa",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={24}
+              name={focused ? "house.fill" : "house"}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="inspection"
         options={{
-          title: "Keşfet",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+          title: "İnceleme",
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={24}
+              name={focused ? "camera.fill" : "camera"}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profil",
+          tabBarIcon: ({ color, focused }) => (
+            <IconSymbol
+              size={24}
+              name={focused ? "person.fill" : "person"}
+              color={color}
+            />
           ),
         }}
       />

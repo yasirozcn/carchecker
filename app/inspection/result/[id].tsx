@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
 import { inspectionService, reportService } from "../../../services/firebase";
 import { CarInspection, Damage } from "../../../types";
+import { Colors } from "../../../constants/Colors";
+import { useColorScheme } from "../../../hooks/useColorScheme";
 
 export default function ResultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [inspection, setInspection] = useState<CarInspection | null>(null);
   const [loading, setLoading] = useState(true);
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? "light"];
 
   useEffect(() => {
     loadInspection();
@@ -44,6 +56,23 @@ export default function ResultScreen() {
     }
   };
 
+  const getDamageTypeIcon = (type: string): string => {
+    switch (type) {
+      case "scratch":
+        return "create-outline";
+      case "dent":
+        return "remove-circle-outline";
+      case "crack":
+        return "git-branch-outline";
+      case "chip":
+        return "diamond-outline";
+      case "other":
+        return "help-circle-outline";
+      default:
+        return "alert-circle-outline";
+    }
+  };
+
   const getSeverityText = (severity: string): string => {
     switch (severity) {
       case "minor":
@@ -60,13 +89,13 @@ export default function ResultScreen() {
   const getSeverityColor = (severity: string): string => {
     switch (severity) {
       case "minor":
-        return "#10B981";
+        return colors.accent;
       case "moderate":
-        return "#F59E0B";
+        return colors.warning;
       case "severe":
-        return "#EF4444";
+        return colors.error;
       default:
-        return "#6B7280";
+        return colors.textTertiary;
     }
   };
 
@@ -85,60 +114,172 @@ export default function ResultScreen() {
     }
   };
 
+  const getStatusIcon = (status: string): string => {
+    switch (status) {
+      case "pending":
+        return "time-outline";
+      case "processing":
+        return "sync-outline";
+      case "completed":
+        return "checkmark-circle-outline";
+      case "failed":
+        return "close-circle-outline";
+      default:
+        return "help-circle-outline";
+    }
+  };
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Yükleniyor...</Text>
+      <View
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: colors.background },
+        ]}
+      >
+        <Ionicons name="analytics-outline" size={64} color={colors.primary} />
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+          Sonuçlar Yükleniyor...
+        </Text>
       </View>
     );
   }
 
   if (!inspection) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>İnceleme bulunamadı</Text>
+      <View
+        style={[styles.errorContainer, { backgroundColor: colors.background }]}
+      >
+        <Ionicons name="alert-circle-outline" size={64} color={colors.error} />
+        <Text style={[styles.errorText, { color: colors.error }]}>
+          İnceleme bulunamadı
+        </Text>
         <Button
           title="Ana Sayfaya Dön"
           onPress={() => router.replace("/(tabs)")}
+          style={styles.errorButton}
         />
       </View>
     );
   }
 
+  const severeDamages =
+    inspection.damages?.filter((d) => d.severity === "severe").length || 0;
+  const moderateDamages =
+    inspection.damages?.filter((d) => d.severity === "moderate").length || 0;
+  const minorDamages =
+    inspection.damages?.filter((d) => d.severity === "minor").length || 0;
+
   return (
-    <LinearGradient colors={["#f8fafc", "#e2e8f0"]} style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={styles.title}>İnceleme Sonucu</Text>
-          <Text style={styles.subtitle}>
-            İnceleme #{inspection.id.slice(-6)}
-          </Text>
-        </View>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <LinearGradient
+          colors={[colors.primary, colors.secondary]}
+          style={styles.header}
+        >
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <View style={styles.headerContent}>
+            <View style={styles.logoContainer}>
+              <Ionicons name="document-text" size={48} color="#FFFFFF" />
+            </View>
+            <Text style={styles.title}>İnceleme Sonucu</Text>
+            <Text style={styles.subtitle}>
+              İnceleme #{inspection.id.slice(-6)}
+            </Text>
+          </View>
+        </LinearGradient>
 
         <View style={styles.content}>
-          <Card>
-            <View style={styles.inspectionInfo}>
-              <Text style={styles.infoTitle}>İnceleme Bilgileri</Text>
+          {/* Inspection Info Card */}
+          <Card style={{ ...styles.infoCard, backgroundColor: colors.card }}>
+            <View style={styles.cardHeader}>
+              <Ionicons
+                name="information-circle-outline"
+                size={24}
+                color={colors.primary}
+              />
+              <Text style={[styles.cardTitle, { color: colors.text }]}>
+                İnceleme Bilgileri
+              </Text>
+            </View>
 
+            <View style={styles.infoGrid}>
               {inspection.carPlate && (
-                <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Plaka:</Text>
-                  <Text style={styles.infoValue}>{inspection.carPlate}</Text>
+                <View style={styles.infoItem}>
+                  <Ionicons
+                    name="car-outline"
+                    size={20}
+                    color={colors.textSecondary}
+                  />
+                  <View style={styles.infoContent}>
+                    <Text
+                      style={[
+                        styles.infoLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Plaka
+                    </Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>
+                      {inspection.carPlate}
+                    </Text>
+                  </View>
                 </View>
               )}
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Durum:</Text>
-                <Text style={styles.infoValue}>
-                  {getStatusText(inspection.status)}
-                </Text>
+              <View style={styles.infoItem}>
+                <Ionicons
+                  name={getStatusIcon(inspection.status) as any}
+                  size={20}
+                  color={getSeverityColor(inspection.status)}
+                />
+                <View style={styles.infoContent}>
+                  <Text
+                    style={[styles.infoLabel, { color: colors.textSecondary }]}
+                  >
+                    Durum
+                  </Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>
+                    {getStatusText(inspection.status)}
+                  </Text>
+                </View>
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Tarih:</Text>
-                <Text style={styles.infoValue}>
-                  {new Date(inspection.createdAt).toLocaleDateString("tr-TR")}
-                </Text>
+              <View style={styles.infoItem}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={colors.textSecondary}
+                />
+                <View style={styles.infoContent}>
+                  <Text
+                    style={[styles.infoLabel, { color: colors.textSecondary }]}
+                  >
+                    Tarih
+                  </Text>
+                  <Text style={[styles.infoValue, { color: colors.text }]}>
+                    {new Date(inspection.createdAt).toLocaleDateString(
+                      "tr-TR",
+                      {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}
+                  </Text>
+                </View>
               </View>
             </View>
           </Card>
@@ -147,98 +288,238 @@ export default function ResultScreen() {
           inspection.damages &&
           inspection.damages.length > 0 ? (
             <>
-              <Card variant="gradient">
-                <Text style={styles.summaryTitle}>Hasar Özeti</Text>
+              {/* Summary Stats Card */}
+              <Card
+                style={{ ...styles.summaryCard, backgroundColor: colors.card }}
+              >
+                <View style={styles.cardHeader}>
+                  <Ionicons
+                    name="stats-chart-outline"
+                    size={24}
+                    color={colors.accent}
+                  />
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>
+                    Hasar Özeti
+                  </Text>
+                </View>
+
                 <View style={styles.summaryStats}>
                   <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {inspection.damages.length}
+                    <View
+                      style={[
+                        styles.statCircle,
+                        { backgroundColor: colors.primary + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.statNumber, { color: colors.primary }]}
+                      >
+                        {inspection.damages.length}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.statLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Toplam
                     </Text>
-                    <Text style={styles.statLabel}>Toplam Hasar</Text>
                   </View>
 
                   <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {
-                        inspection.damages.filter(
-                          (d) => d.severity === "severe"
-                        ).length
-                      }
+                    <View
+                      style={[
+                        styles.statCircle,
+                        { backgroundColor: colors.error + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.statNumber, { color: colors.error }]}
+                      >
+                        {severeDamages}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.statLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Ciddi
                     </Text>
-                    <Text style={styles.statLabel}>Ciddi</Text>
                   </View>
 
                   <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {
-                        inspection.damages.filter(
-                          (d) => d.severity === "moderate"
-                        ).length
-                      }
+                    <View
+                      style={[
+                        styles.statCircle,
+                        { backgroundColor: colors.warning + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.statNumber, { color: colors.warning }]}
+                      >
+                        {moderateDamages}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.statLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Orta
                     </Text>
-                    <Text style={styles.statLabel}>Orta</Text>
                   </View>
 
                   <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>
-                      {
-                        inspection.damages.filter((d) => d.severity === "minor")
-                          .length
-                      }
+                    <View
+                      style={[
+                        styles.statCircle,
+                        { backgroundColor: colors.accent + "20" },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.statNumber, { color: colors.accent }]}
+                      >
+                        {minorDamages}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.statLabel,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      Hafif
                     </Text>
-                    <Text style={styles.statLabel}>Hafif</Text>
                   </View>
                 </View>
               </Card>
 
+              {/* Damages Section */}
               <View style={styles.damagesSection}>
-                <Text style={styles.sectionTitle}>
-                  Tespit Edilen Hasar Detayları
-                </Text>
+                <View style={styles.sectionHeader}>
+                  <Ionicons
+                    name="warning-outline"
+                    size={24}
+                    color={colors.warning}
+                  />
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    Tespit Edilen Hasar Detayları
+                  </Text>
+                </View>
 
                 {inspection.damages.map((damage: Damage, index: number) => (
-                  <Card key={damage.id || index} style={styles.damageCard}>
+                  <Card
+                    key={damage.id || index}
+                    style={{
+                      ...styles.damageCard,
+                      backgroundColor: colors.card,
+                    }}
+                  >
                     <View style={styles.damageHeader}>
-                      <View style={styles.damageType}>
-                        <Text style={styles.damageTypeText}>
-                          {getDamageTypeText(damage.type)}
-                        </Text>
+                      <View style={styles.damageTypeContainer}>
+                        <Ionicons
+                          name={getDamageTypeIcon(damage.type) as any}
+                          size={20}
+                          color={colors.primary}
+                        />
+                        <View
+                          style={[
+                            styles.damageType,
+                            { backgroundColor: colors.primary + "20" },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.damageTypeText,
+                              { color: colors.primary },
+                            ]}
+                          >
+                            {getDamageTypeText(damage.type)}
+                          </Text>
+                        </View>
                       </View>
                       <View
                         style={[
                           styles.severityBadge,
                           {
-                            backgroundColor: getSeverityColor(damage.severity),
+                            backgroundColor:
+                              getSeverityColor(damage.severity) + "20",
                           },
                         ]}
                       >
-                        <Text style={styles.severityText}>
+                        <Text
+                          style={[
+                            styles.severityText,
+                            { color: getSeverityColor(damage.severity) },
+                          ]}
+                        >
                           {getSeverityText(damage.severity)}
                         </Text>
                       </View>
                     </View>
 
-                    <Text style={styles.damageLocation}>
-                      Konum: {damage.location}
-                    </Text>
-
-                    <Text style={styles.damageDescription}>
-                      {damage.description}
-                    </Text>
-
-                    <View style={styles.confidenceBar}>
-                      <View style={styles.confidenceLabel}>
-                        <Text style={styles.confidenceText}>
-                          Güven: %{Math.round(damage.confidence * 100)}
+                    <View style={styles.damageContent}>
+                      <View style={styles.locationContainer}>
+                        <Ionicons
+                          name="location-outline"
+                          size={16}
+                          color={colors.textSecondary}
+                        />
+                        <Text
+                          style={[
+                            styles.damageLocation,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {damage.location}
                         </Text>
                       </View>
-                      <View style={styles.confidenceTrack}>
+
+                      <Text
+                        style={[
+                          styles.damageDescription,
+                          { color: colors.textSecondary },
+                        ]}
+                      >
+                        {damage.description}
+                      </Text>
+
+                      <View style={styles.confidenceContainer}>
+                        <View style={styles.confidenceHeader}>
+                          <Ionicons
+                            name="trending-up-outline"
+                            size={16}
+                            color={colors.textSecondary}
+                          />
+                          <Text
+                            style={[
+                              styles.confidenceText,
+                              { color: colors.textSecondary },
+                            ]}
+                          >
+                            Güven: %{Math.round(damage.confidence * 100)}
+                          </Text>
+                        </View>
                         <View
                           style={[
-                            styles.confidenceFill,
-                            { width: `${damage.confidence * 100}%` },
+                            styles.confidenceTrack,
+                            { backgroundColor: colors.cardBorder },
                           ]}
-                        />
+                        >
+                          <View
+                            style={[
+                              styles.confidenceFill,
+                              {
+                                width: `${damage.confidence * 100}%`,
+                                backgroundColor: colors.primary,
+                              },
+                            ]}
+                          />
+                        </View>
                       </View>
                     </View>
                   </Card>
@@ -246,25 +527,72 @@ export default function ResultScreen() {
               </View>
             </>
           ) : inspection.status === "completed" ? (
-            <Card>
-              <Text style={styles.noDamageText}>
-                Tebrikler! Araçta herhangi bir hasar tespit edilmedi.
-              </Text>
+            <Card
+              style={{ ...styles.successCard, backgroundColor: colors.card }}
+            >
+              <View style={styles.successContent}>
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={64}
+                  color={colors.accent}
+                />
+                <Text style={[styles.successTitle, { color: colors.text }]}>
+                  Tebrikler!
+                </Text>
+                <Text
+                  style={[styles.successText, { color: colors.textSecondary }]}
+                >
+                  Araçta herhangi bir hasar tespit edilmedi.
+                </Text>
+              </View>
             </Card>
           ) : inspection.status === "processing" ? (
-            <Card>
-              <Text style={styles.processingText}>
-                Analiz devam ediyor... Lütfen bekleyin.
-              </Text>
+            <Card
+              style={{ ...styles.processingCard, backgroundColor: colors.card }}
+            >
+              <View style={styles.processingContent}>
+                <Ionicons
+                  name="sync-outline"
+                  size={64}
+                  color={colors.warning}
+                />
+                <Text style={[styles.processingTitle, { color: colors.text }]}>
+                  Analiz Devam Ediyor
+                </Text>
+                <Text
+                  style={[
+                    styles.processingText,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Lütfen bekleyin...
+                </Text>
+              </View>
             </Card>
           ) : inspection.status === "failed" ? (
-            <Card>
-              <Text style={styles.errorText}>
-                Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.
-              </Text>
+            <Card style={{ ...styles.errorCard, backgroundColor: colors.card }}>
+              <View style={styles.errorContent}>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={64}
+                  color={colors.error}
+                />
+                <Text style={[styles.errorTitle, { color: colors.text }]}>
+                  Analiz Hatası
+                </Text>
+                <Text
+                  style={[
+                    styles.errorDescription,
+                    { color: colors.textSecondary },
+                  ]}
+                >
+                  Analiz sırasında bir hata oluştu. Lütfen tekrar deneyin.
+                </Text>
+              </View>
             </Card>
           ) : null}
 
+          {/* Actions */}
           <View style={styles.actions}>
             <Button
               title="Yeni İnceleme"
@@ -281,12 +609,15 @@ export default function ResultScreen() {
           </View>
         </View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  scrollView: {
     flex: 1,
   },
   loadingContainer: {
@@ -296,7 +627,8 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 18,
-    color: "#6B7280",
+    marginTop: 16,
+    fontWeight: "500",
   },
   errorContainer: {
     flex: 1,
@@ -306,60 +638,94 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    color: "#EF4444",
-    marginBottom: 24,
+    marginTop: 16,
     textAlign: "center",
+    fontWeight: "500",
   },
-  scrollView: {
-    flex: 1,
+  errorButton: {
+    marginTop: 24,
   },
   header: {
-    padding: 24,
-    paddingTop: 40,
+    paddingTop: 60,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+  },
+  backButton: {
+    position: "absolute",
+    top: 60,
+    left: 24,
+    zIndex: 1,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerContent: {
+    alignItems: "center",
+    gap: 16,
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#1F2937",
-    marginBottom: 8,
+    color: "#FFFFFF",
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "#6B7280",
-    lineHeight: 24,
+    color: "rgba(255, 255, 255, 0.8)",
+    textAlign: "center",
   },
   content: {
     padding: 24,
+    gap: 24,
   },
-  inspectionInfo: {
+  infoCard: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  summaryCard: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
+    marginBottom: 20,
   },
-  infoTitle: {
+  cardTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 8,
   },
-  infoRow: {
+  infoGrid: {
+    gap: 16,
+  },
+  infoItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    gap: 12,
+  },
+  infoContent: {
+    flex: 1,
   },
   infoLabel: {
-    fontSize: 16,
-    color: "#6B7280",
+    fontSize: 14,
     fontWeight: "500",
+    marginBottom: 2,
   },
   infoValue: {
     fontSize: 16,
-    color: "#1F2937",
     fontWeight: "600",
-  },
-  summaryTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 16,
   },
   summaryStats: {
     flexDirection: "row",
@@ -367,114 +733,168 @@ const styles = StyleSheet.create({
   },
   statItem: {
     alignItems: "center",
+    gap: 8,
+  },
+  statCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: "bold",
-    color: "#3B82F6",
   },
   statLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "500",
   },
   damagesSection: {
-    marginTop: 24,
+    gap: 16,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 16,
   },
   damageCard: {
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
   },
   damageHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 16,
+  },
+  damageTypeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   damageType: {
-    backgroundColor: "#E5E7EB",
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   damageTypeText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
   },
   severityBadge: {
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   severityText: {
-    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
   },
+  damageContent: {
+    gap: 12,
+  },
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   damageLocation: {
     fontSize: 16,
-    color: "#374151",
-    marginBottom: 8,
     fontWeight: "500",
   },
   damageDescription: {
     fontSize: 14,
-    color: "#6B7280",
     lineHeight: 20,
-    marginBottom: 12,
   },
-  confidenceBar: {
-    gap: 4,
+  confidenceContainer: {
+    gap: 8,
   },
-  confidenceLabel: {
-    alignItems: "flex-end",
+  confidenceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   confidenceText: {
-    fontSize: 12,
-    color: "#6B7280",
+    fontSize: 14,
+    fontWeight: "500",
   },
   confidenceTrack: {
-    height: 4,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 3,
     overflow: "hidden",
   },
   confidenceFill: {
     height: "100%",
-    backgroundColor: "#3B82F6",
-    borderRadius: 2,
+    borderRadius: 3,
   },
-  noDamageText: {
-    fontSize: 18,
-    color: "#10B981",
+  successCard: {
+    borderRadius: 16,
+    padding: 32,
+  },
+  successContent: {
+    alignItems: "center",
+    gap: 16,
+  },
+  successTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  successText: {
+    fontSize: 16,
     textAlign: "center",
-    fontWeight: "600",
     lineHeight: 24,
+  },
+  processingCard: {
+    borderRadius: 16,
+    padding: 32,
+  },
+  processingContent: {
+    alignItems: "center",
+    gap: 16,
+  },
+  processingTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
   },
   processingText: {
     fontSize: 16,
-    color: "#F59E0B",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  errorCard: {
+    borderRadius: 16,
+    padding: 32,
+  },
+  errorContent: {
+    alignItems: "center",
+    gap: 16,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  errorDescription: {
+    fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
   },
   actions: {
-    marginTop: 24,
     gap: 12,
+    marginTop: 8,
   },
   newInspectionButton: {
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 12,
+    elevation: 8,
   },
   homeButton: {
-    borderColor: "#6B7280",
+    marginBottom: 40,
   },
 });
