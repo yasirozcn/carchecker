@@ -37,10 +37,16 @@ export const authService = {
         email,
         name,
         createdAt: new Date(),
+        credits: 1, // Yeni kullanıcıya 1 deneme kredisi
       };
 
       // Kullanıcı bilgilerini Firestore'a kaydet (kullanıcının kendi ID'si ile)
       await setDoc(doc(db, "users", userCredential.user.uid), user);
+
+      // Deneme kredisi işlemini kaydet
+      const { creditService } = await import("./creditService");
+      await creditService.giveWelcomeCredits(userCredential.user.uid);
+
       return user;
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -235,11 +241,25 @@ export const inspectionService = {
       const inspection = await this.getInspection(inspectionId);
       if (!inspection) return;
 
+      // Kredi kontrolü yap
+      const { creditService } = await import("./creditService");
+      const userCredits = await creditService.getUserCredits(inspection.userId);
+
+      if (userCredits < 1) {
+        await this.updateInspectionStatus(inspectionId, "failed");
+        throw new Error("Yetersiz kredi");
+      }
+
+      // Krediyi kullan
+      await creditService.useCredits(inspection.userId, inspectionId);
+
       // AI analizi için fotoğrafları hazırla
       const imageUrls = Object.values(inspection.images).filter((url) => url);
 
       if (imageUrls.length === 0) {
         await this.updateInspectionStatus(inspectionId, "failed");
+        // Krediyi iade et
+        await creditService.refundCredits(inspection.userId, inspectionId);
         return;
       }
 

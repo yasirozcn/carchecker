@@ -8,6 +8,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import { AuthProvider, useAuth } from "../components/AuthProvider";
+import { StripeProvider } from "@stripe/stripe-react-native";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 
@@ -29,6 +30,8 @@ function RootLayoutContent() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="register" />
+        <Stack.Screen name="credits-simple" />
+        <Stack.Screen name="credit-history" />
         <Stack.Screen name="inspection/new" />
         <Stack.Screen name="inspection/camera/[id]" />
         <Stack.Screen name="inspection/camera-simple/[id]" />
@@ -42,8 +45,10 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutContent />
-    </AuthProvider>
+    <StripeProvider publishableKey="pk_test_51RkVQ2Gf2wvyP4TG6rLY9KJfzWKjwv45BxDOkacpsRhxomYAyLEbkDZdW6kOV3hktw9RhdVePI1B63HtaGNhlaSS002tSrk2HS">
+      <AuthProvider>
+        <RootLayoutContent />
+      </AuthProvider>
+    </StripeProvider>
   );
 }

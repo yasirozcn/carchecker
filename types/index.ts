@@ -3,6 +3,8 @@ export interface User {
   email: string;
   name: string;
   createdAt: Date;
+  credits: number; // Kullanıcının kredi sayısı
+  totalPurchasedCredits?: number; // Toplam satın alınan kredi sayısı
 }
 
 export interface CarInspection {
@@ -53,4 +55,37 @@ export interface InspectionReport {
   estimatedRepairCost?: number;
   recommendations: string[];
   summary: string;
+}
+
+// Kredi sistemi tipleri
+export interface CreditPackage {
+  id: string;
+  credits: number;
+  price: number; // USD cinsinden
+  originalPrice?: number; // İndirim öncesi fiyat
+  discount?: number; // İndirim yüzdesi
+  isPopular?: boolean;
+  description?: string;
+}
+
+export interface CreditTransaction {
+  id: string;
+  userId: string;
+  type: "purchase" | "usage" | "refund" | "bonus";
+  credits: number;
+  amount?: number; // USD cinsinden (sadece satın alma işlemlerinde)
+  description: string;
+  inspectionId?: string; // Kullanım durumunda hangi inceleme için kullanıldığı
+  paymentIntentId?: string; // Stripe payment intent ID
+  status: "pending" | "completed" | "failed" | "refunded";
+  createdAt: Date;
+  completedAt?: Date;
+}
+
+export interface PaymentIntent {
+  id: string;
+  amount: number; // Kuruş cinsinden (Stripe formatı)
+  currency: string;
+  status: string;
+  clientSecret: string;
 }

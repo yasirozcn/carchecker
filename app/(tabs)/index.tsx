@@ -19,6 +19,7 @@ import { CarInspection } from "../../types";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
 import { useAuth } from "../../components/AuthProvider";
+import { creditService } from "../../services/creditService";
 
 const { width } = Dimensions.get("window");
 
@@ -26,6 +27,7 @@ export default function HomeScreen() {
   const [inspections, setInspections] = useState<CarInspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userCredits, setUserCredits] = useState(0);
   const { user } = useAuth();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -33,10 +35,20 @@ export default function HomeScreen() {
   useEffect(() => {
     if (user) {
       loadInspections(user.uid);
+      loadUserCredits();
     } else {
       setLoading(false);
     }
   }, [user]);
+
+  const loadUserCredits = async () => {
+    try {
+      const credits = await creditService.getUserCredits(user!.uid);
+      setUserCredits(credits);
+    } catch (error) {
+      console.error("Kredi yüklenirken hata:", error);
+    }
+  };
 
   const loadInspections = async (userId: string) => {
     try {
@@ -79,6 +91,20 @@ export default function HomeScreen() {
   };
 
   const handleNewInspection = () => {
+    if (userCredits < 1) {
+      Alert.alert(
+        "Yetersiz Kredi",
+        "Yeni bir inceleme başlatmak için en az 1 krediniz olmalıdır. Kredi satın almak ister misiniz?",
+        [
+          { text: "İptal", style: "cancel" },
+          {
+            text: "Kredi Satın Al",
+            onPress: () => router.push("/credits-simple" as any),
+          },
+        ]
+      );
+      return;
+    }
     router.push("/inspection/new");
   };
 
@@ -185,6 +211,10 @@ export default function HomeScreen() {
               <View style={styles.statCard}>
                 <Text style={styles.statNumber}>{completedInspections}</Text>
                 <Text style={styles.statLabel}>Tamamlanan</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{userCredits}</Text>
+                <Text style={styles.statLabel}>Kredi</Text>
               </View>
             </View>
           </View>

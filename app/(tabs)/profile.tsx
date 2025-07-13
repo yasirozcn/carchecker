@@ -16,12 +16,29 @@ import { Button } from "../../components/ui/Button";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
 import { useAuth } from "../../components/AuthProvider";
+import { creditService } from "../../services/creditService";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [userCredits, setUserCredits] = useState(0);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+
+  useEffect(() => {
+    if (user) {
+      loadUserCredits();
+    }
+  }, [user]);
+
+  const loadUserCredits = async () => {
+    try {
+      const credits = await creditService.getUserCredits(user!.uid);
+      setUserCredits(credits);
+    } catch (error) {
+      console.error("Kredi yüklenirken hata:", error);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert("Çıkış Yap", "Çıkış yapmak istediğinizden emin misiniz?", [
@@ -121,6 +138,47 @@ export default function ProfileScreen() {
             </View>
           </View>
         </LinearGradient>
+
+        {/* Credit Info */}
+        <View style={styles.section}>
+          <Card style={{ ...styles.creditCard, backgroundColor: colors.card }}>
+            <View style={styles.creditHeader}>
+              <Ionicons name="card-outline" size={24} color={colors.primary} />
+              <Text style={[styles.creditTitle, { color: colors.text }]}>
+                Kredileriniz
+              </Text>
+            </View>
+            <View style={styles.creditContent}>
+              <Text style={[styles.creditCount, { color: colors.primary }]}>
+                {userCredits}
+              </Text>
+              <Text
+                style={[styles.creditLabel, { color: colors.textSecondary }]}
+              >
+                Kredi
+              </Text>
+            </View>
+            <View style={styles.creditButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.buyCreditsButton,
+                  { backgroundColor: colors.primary },
+                ]}
+                onPress={() => router.push("/credits-simple" as any)}
+              >
+                <Text style={styles.buyCreditsText}>Kredi Satın Al</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.historyButton, { borderColor: colors.primary }]}
+                onPress={() => router.push("/credit-history" as any)}
+              >
+                <Text style={[styles.historyText, { color: colors.primary }]}>
+                  İşlem Geçmişi
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Card>
+        </View>
 
         {/* Profile Actions */}
         <View style={styles.profileActions}>
@@ -475,5 +533,61 @@ const styles = StyleSheet.create({
   logoutButton: {
     borderColor: "#EF4444",
     marginBottom: 40,
+  },
+  creditCard: {
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+  },
+  creditHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  creditTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginLeft: 8,
+  },
+  creditContent: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  creditCount: {
+    fontSize: 36,
+    fontWeight: "bold",
+  },
+  creditLabel: {
+    fontSize: 14,
+    marginTop: 4,
+  },
+  buyCreditsButton: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  buyCreditsText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  creditButtons: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+  },
+  historyButton: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  historyText: {
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
