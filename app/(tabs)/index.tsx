@@ -14,14 +14,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
-import {
-  authService,
-  inspectionService,
-  reportService,
-} from "../../services/firebase";
+import { inspectionService, reportService } from "../../services/firebase";
 import { CarInspection } from "../../types";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
+import { useAuth } from "../../components/AuthProvider";
 
 const { width } = Dimensions.get("window");
 
@@ -29,20 +26,17 @@ export default function HomeScreen() {
   const [inspections, setInspections] = useState<CarInspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
   useEffect(() => {
-    const unsubscribe = authService.onAuthStateChanged((user) => {
-      setUser(user);
-      if (user) {
-        loadInspections(user.uid);
-      }
-    });
-
-    return unsubscribe;
-  }, []);
+    if (user) {
+      loadInspections(user.uid);
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   const loadInspections = async (userId: string) => {
     try {
@@ -143,7 +137,7 @@ export default function HomeScreen() {
       >
         <Ionicons name="car-sport-outline" size={64} color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          CarCheck Yükleniyor...
+          İncelemeler Yükleniyor...
         </Text>
       </View>
     );

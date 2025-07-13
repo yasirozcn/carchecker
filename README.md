@@ -178,9 +178,33 @@ interface DamageDetection {
 ## 🔒 Güvenlik
 
 - Firebase Authentication
+- AsyncStorage ile oturum hatırlama
 - API Key güvenliği
 - Resim optimizasyonu
 - Input validation
+
+## 🔐 Authentication Sistemi
+
+### Oturum Yönetimi
+
+- **Firebase Auth**: Güvenli kullanıcı kimlik doğrulama
+- **AsyncStorage**: Yerel oturum verisi saklama
+- **Auto-login**: Uygulama yeniden açıldığında otomatik giriş
+- **Session Persistence**: Kullanıcı bilgileri cihazda saklanır
+
+### Auth Flow
+
+1. **İlk Açılış**: AsyncStorage'dan kullanıcı bilgisi kontrol edilir
+2. **Firebase Sync**: Firebase auth state ile senkronizasyon
+3. **Loading State**: Auth durumu yüklenirken loading gösterilir
+4. **Route Protection**: Giriş yapmamış kullanıcılar login sayfasına yönlendirilir
+
+### Kullanılan Teknolojiler
+
+- `@react-native-async-storage/async-storage`: Yerel veri saklama
+- `firebase/auth`: Kimlik doğrulama
+- `expo-router`: Sayfa yönlendirme
+- Custom AuthProvider: Merkezi auth state yönetimi
 
 ## 📈 Performans
 

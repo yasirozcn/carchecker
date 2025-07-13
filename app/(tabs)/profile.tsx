@@ -13,24 +13,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
-import { authService } from "../../services/firebase";
 import { Colors } from "../../constants/Colors";
 import { useColorScheme } from "../../hooks/useColorScheme";
+import { useAuth } from "../../components/AuthProvider";
 
 export default function ProfileScreen() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, signOut } = useAuth();
+  const [loading, setLoading] = useState(false);
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
-
-  useEffect(() => {
-    const unsubscribe = authService.onAuthStateChanged((user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
 
   const handleLogout = async () => {
     Alert.alert("Çıkış Yap", "Çıkış yapmak istediğinizden emin misiniz?", [
@@ -40,10 +31,13 @@ export default function ProfileScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            await authService.logout();
+            setLoading(true);
+            await signOut();
             router.replace("/auth/login");
-          } catch {
+          } catch (error) {
             Alert.alert("Hata", "Çıkış yapılamadı");
+          } finally {
+            setLoading(false);
           }
         },
       },
@@ -77,7 +71,7 @@ export default function ProfileScreen() {
     );
   };
 
-  if (loading) {
+  if (!user) {
     return (
       <View
         style={[
@@ -87,7 +81,7 @@ export default function ProfileScreen() {
       >
         <Ionicons name="person-outline" size={64} color={colors.primary} />
         <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-          Profil Yükleniyor...
+          Kullanıcı bilgileri yükleniyor...
         </Text>
       </View>
     );

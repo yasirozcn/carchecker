@@ -24,60 +24,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // AsyncStorage'dan kullanıcı bilgisini yükle
-    const loadUserFromStorage = async () => {
+    let unsubscribe: (() => void) | undefined;
+
+    const initializeAuth = async () => {
       try {
+        console.log("=== AUTH INITIALIZATION STARTED ===");
+
+        // Önce AsyncStorage'dan kullanıcı bilgisini yükle
         const userData = await AsyncStorage.getItem("user");
+        console.log(
+          "AsyncStorage user data:",
+          userData ? "Found" : "Not found"
+        );
+
         if (userData) {
           const parsedUser = JSON.parse(userData);
+          console.log("Setting user from AsyncStorage:", parsedUser.email);
           setUser(parsedUser);
         }
+
+        // Firebase auth state listener'ı başlat
+        unsubscribe = authService.onAuthStateChanged(async (firebaseUser) => {
+          console.log(
+            "Firebase auth state changed:",
+            firebaseUser
+              ? `User logged in: ${firebaseUser.email}`
+              : "User logged out"
+          );
+
+          if (firebaseUser) {
+            // Kullanıcı giriş yaptı
+            const userData = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+            };
+
+            console.log("Setting user from Firebase:", userData.email);
+            setUser(userData as User);
+
+            // AsyncStorage'a kaydet
+            try {
+              await AsyncStorage.setItem("user", JSON.stringify(userData));
+              console.log("User data saved to AsyncStorage");
+            } catch (error) {
+              console.error("AsyncStorage kaydetme hatası:", error);
+            }
+          } else {
+            // Kullanıcı çıkış yaptı
+            console.log("Clearing user data");
+            setUser(null);
+
+            // AsyncStorage'dan sil
+            try {
+              await AsyncStorage.removeItem("user");
+              console.log("User data removed from AsyncStorage");
+            } catch (error) {
+              console.error("AsyncStorage silme hatası:", error);
+            }
+          }
+
+          if (!initialized) {
+            console.log("Setting initialized to true");
+            setInitialized(true);
+          }
+          setLoading(false);
+          console.log("=== AUTH INITIALIZATION COMPLETED ===");
+        });
       } catch (error) {
-        console.error("AsyncStorage yükleme hatası:", error);
+        console.error("Auth initialization error:", error);
+        setLoading(false);
+        setInitialized(true);
       }
     };
 
-    // Firebase auth state listener
-    const unsubscribe = authService.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        // Kullanıcı giriş yaptı
-        const userData = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        };
+    initializeAuth();
 
-        setUser(userData as User);
-
-        // AsyncStorage'a kaydet
-        try {
-          await AsyncStorage.setItem("user", JSON.stringify(userData));
-        } catch (error) {
-          console.error("AsyncStorage kaydetme hatası:", error);
-        }
-      } else {
-        // Kullanıcı çıkış yaptı
-        setUser(null);
-
-        // AsyncStorage'dan sil
-        try {
-          await AsyncStorage.removeItem("user");
-        } catch (error) {
-          console.error("AsyncStorage silme hatası:", error);
-        }
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
-
-      setLoading(false);
-    });
-
-    // İlk yüklemede AsyncStorage'dan kontrol et
-    loadUserFromStorage();
-
-    return unsubscribe;
-  }, []);
+    };
+  }, [initialized]);
 
   const signOut = async () => {
     try {
@@ -89,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const value = {
     user,
-    loading,
+    loading: loading || !initialized,
     signOut,
   };
 
